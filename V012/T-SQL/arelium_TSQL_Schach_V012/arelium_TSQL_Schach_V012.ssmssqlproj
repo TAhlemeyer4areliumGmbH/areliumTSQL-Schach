@@ -361,17 +361,17 @@
           <AssociatedConnUserName />
           <FullPath>118 - View [Infrastruktur].[vLogo] erstellen.sql</FullPath>
         </FileNode>
-        <FileNode Name="119 - View [Infrastruktur].[vSpielbrett] erstellen.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>119 - View [Infrastruktur].[vSpielbrett] erstellen.sql</FullPath>
-        </FileNode>
         <FileNode Name="121 - Funktion [Infrastruktur].[fncStellungIstSchach] erstellen.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>121 - Funktion [Infrastruktur].[fncStellungIstSchach] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="127 - View [Infrastruktur].[vSpielbrett] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>127 - View [Infrastruktur].[vSpielbrett] erstellen.sql</FullPath>
         </FileNode>
         <FileNode Name="150 - ---------- Notation -------.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
@@ -403,29 +403,47 @@
           <AssociatedConnUserName />
           <FullPath>200 - ---------- PGN-Import ----------------.sql</FullPath>
         </FileNode>
-        <FileNode Name="201 - Prozedur [Bibliothek].[prcImportPGN] erstellen.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+        <FileNode Name="201 - Bulk Insert CSV-PGN-Datei.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>201 - Prozedur [Bibliothek].[prcImportPGN] erstellen.sql</FullPath>
+          <FullPath>201 - Bulk Insert CSV-PGN-Datei.sql</FullPath>
         </FileNode>
-        <FileNode Name="202 - Prozedur [Bibliothek].[prcKurzeNotationAufbereiten] erstellen.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+        <FileNode Name="202 - PGN-Datei aufbereiten.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>202 - Prozedur [Bibliothek].[prcKurzeNotationAufbereiten] erstellen.sql</FullPath>
+          <FullPath>202 - PGN-Datei aufbereiten.sql</FullPath>
         </FileNode>
-        <FileNode Name="204 - Prozedur [Bibliothek].[prcGrossmeisterpartienEinlesen] erstellen.sql">
+        <FileNode Name="203 - Prozedur [Bibliothek].[prcImportPGN] erstellen.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>203 - Prozedur [Bibliothek].[prcImportPGN] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="205 - Prozedur [Bibliothek].[prcGrossmeisterpartienEinlesen] erstellen.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>204 - Prozedur [Bibliothek].[prcGrossmeisterpartienEinlesen] erstellen.sql</FullPath>
+          <FullPath>205 - Prozedur [Bibliothek].[prcGrossmeisterpartienEinlesen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="206 - Prozedur [Bibliothek].[prcKurzeNotationAufbereiten] erstellen.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>206 - Prozedur [Bibliothek].[prcKurzeNotationAufbereiten] erstellen.sql</FullPath>
         </FileNode>
         <FileNode Name="210 - Funktionen [Bibliothek].[fncCharIndexNG] erstellen.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>210 - Funktionen [Bibliothek].[fncCharIndexNG] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="212 - Grossmeisterpartien einlesen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>212 - Grossmeisterpartien einlesen.sql</FullPath>
         </FileNode>
         <FileNode Name="300 - ---------- n-Zuege-voraus ----------------.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
@@ -546,12 +564,6 @@
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>812 - Beispielpartie TSQL vs TSQL 2xLevel 02.sql</FullPath>
-        </FileNode>
-        <FileNode Name="830 - Grossmeisterpartien einlesen 001.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>830 - Grossmeisterpartien einlesen 001.sql</FullPath>
         </FileNode>
         <FileNode Name="900 - ---------- Administratives ----------------.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>

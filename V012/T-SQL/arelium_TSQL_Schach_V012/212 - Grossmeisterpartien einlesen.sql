@@ -8,7 +8,7 @@ GO
 DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
 DECLARE @MaxZaehler						INTEGER
 
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\arelium_TSQL_Schach\V012\PNGs\Lasker.pgn'
+SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Lasker.pgn'
 SET @MaxZaehler					= 150
 
 EXECUTE [Bibliothek].[prcImportPGN] 

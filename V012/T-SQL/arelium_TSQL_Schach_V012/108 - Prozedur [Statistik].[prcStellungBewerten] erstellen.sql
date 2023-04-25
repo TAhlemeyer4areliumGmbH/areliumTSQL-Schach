@@ -111,41 +111,66 @@ BEGIN
 	FROM [Spiel].[MoeglicheAktionen]
 
 	-- Es soll die Summe der Figurwerte einbezogen werden
-	UPDATE [Statistik].[Stellungsbewertung]
-	SET 
-			[Weiss]	= [Statistik].[fncFigurWertZaehlen] ('TRUE',	@ASpielbrett)
-		, [Schwarz]	= [Statistik].[fncFigurWertZaehlen] ('FALSE',	@ASpielbrett)
-	WHERE [Label] = 'Figurwert:'
-
+	IF (SELECT [ZuberechnenSummeFigurWert] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
+			INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
+			WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= [Statistik].[fncFigurWertZaehlen] ('TRUE',	@ASpielbrett)
+			, [Schwarz]	= [Statistik].[fncFigurWertZaehlen] ('FALSE',	@ASpielbrett)
+		WHERE [Label] = 'Figurwert:'
+	END
+	ELSE
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= NULL
+			, [Schwarz]	= NULL
+		WHERE [Label] = 'Figurwert:'
+	END
 
 	-- Es sollen die Aktionsmoeglichkeiten gezaehlt werden
-	UPDATE [Statistik].[Stellungsbewertung]
-	SET 
-			[Weiss]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheAktionen]('TRUE', @ASpielbrett))
-		, [Schwarz]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheAktionen]('FALSE', @ASpielbrett))
-	WHERE [Label] = 'Anzahl Aktionen:'
+	IF (SELECT [ZuberechnenAnzahlAktionen] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
+			INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
+			WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheAktionen]('TRUE', @ASpielbrett))
+			, [Schwarz]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheAktionen]('FALSE', @ASpielbrett))
+		WHERE [Label] = 'Anzahl Aktionen:'
+	END
+	ELSE
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= NULL
+			, [Schwarz]	= NULL
+		WHERE [Label] = 'Figurwert:'
+	END
 
 	
-	-- Es sollen die Schlagmoeglichkeiten gezaehlt werden
-	UPDATE [Statistik].[Stellungsbewertung]
-	SET 
-			[Weiss]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheSchlaege]('TRUE', @ASpielbrett))
-		, [Schwarz]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheSchlaege]('FALSE', @ASpielbrett))
-	WHERE [Label] = 'Anzahl Schlaege:'
+	---- Es sollen die Schlagmoeglichkeiten gezaehlt werden
+	--UPDATE [Statistik].[Stellungsbewertung]
+	--SET 
+	--		[Weiss]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheSchlaege]('TRUE', @ASpielbrett))
+	--	, [Schwarz]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheSchlaege]('FALSE', @ASpielbrett))
+	--WHERE [Label] = 'Anzahl Schlaege:'
 
-	-- Es sollen die noch verbleibenden Rochademoeglichkeiten gezaehlt werden
-	UPDATE [Statistik].[Stellungsbewertung]
-	SET 
-		  [Weiss]	= (SELECT CONVERT(TINYINT, [IstKurzeRochadeErlaubt]) + CONVERT(TINYINT, [IstLangeRochadeErlaubt]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'TRUE')
-		, [Schwarz]	= (SELECT CONVERT(TINYINT, [IstKurzeRochadeErlaubt]) + CONVERT(TINYINT, [IstLangeRochadeErlaubt]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE')
-	WHERE [Label] = 'Anzahl Rochaden:'
+	---- Es sollen die noch verbleibenden Rochademoeglichkeiten gezaehlt werden
+	--UPDATE [Statistik].[Stellungsbewertung]
+	--SET 
+	--	  [Weiss]	= (SELECT CONVERT(TINYINT, [IstKurzeRochadeErlaubt]) + CONVERT(TINYINT, [IstLangeRochadeErlaubt]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'TRUE')
+	--	, [Schwarz]	= (SELECT CONVERT(TINYINT, [IstKurzeRochadeErlaubt]) + CONVERT(TINYINT, [IstLangeRochadeErlaubt]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE')
+	--WHERE [Label] = 'Anzahl Rochaden:'
 
-	-- Aus allen Einzelmessungen ist nun ein Gesamtwert zu bilden
-	UPDATE [Statistik].[Stellungsbewertung]
-	SET 
-		  [Weiss]	= 0
-		, [Schwarz]	= [Statistik].[fncAktuelleStellungBewerten]()
-	WHERE [Label] = 'Gesamtbewertung:'
+	---- Aus allen Einzelmessungen ist nun ein Gesamtwert zu bilden
+	--UPDATE [Statistik].[Stellungsbewertung]
+	--SET 
+	--	  [Weiss]	= 0
+	--	, [Schwarz]	= [Statistik].[fncAktuelleStellungBewerten]()
+	--WHERE [Label] = 'Gesamtbewertung:'
 	
 END
 GO
