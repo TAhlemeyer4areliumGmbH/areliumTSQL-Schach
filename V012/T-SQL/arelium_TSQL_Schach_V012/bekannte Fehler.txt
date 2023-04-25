@@ -1,0 +1,25 @@
+Folgende Fehler / fehlende Implementierungen sind aktuell bekannt:
+
+Ein doppeltes Schachgebot wird nicht sicher als solches erkannt - was zu folgenden Phaenomenen fuehrt:
+  1) Die Notation stimmt nicht. Bspw. wird ein #-Zeichen (matt) anstelle eines "++"-Zeichens notiert
+  2) Im folgenden Halbzug werden mehr Zuege erlaubt, als die Regeln hergeben. Laut Regeln duerfen aber 
+     nur Zuege ausgefuehrt werden, die das Schachgebot aufheben (nur Wegzug des Koenigs)
+
+die "35-Zuege"-Regel ist noch nicht implementiert
+
+die "3x-Wiederholungs"-Regel ist noch nicht implementiert
+
+Die (Ge-)Wichtungsfunktion fuer die Stellunsgbewertung ist feiner zu justieren. Welche Funktion
+(bspw. Anzahl und Wert der verbliebenen Figuren, Aktivitaet der Figuren bzgl. Ziehen/Schlagen, ... sowie
+weitere Parameter wie Zahl der noch erlaubten Rochaden, die verbliebene Restzeit)
+
+Die Tabelle [MoeglicheAktionen] enthaelt noch Aktionen von Figuren, die eigentlich aufgrund einer 
+Fesselung nicht ziehen duerfen
+
+
+
+
+
+
+
+

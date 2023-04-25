@@ -1,0 +1,41 @@
+Folgende Funktionalitaeten sind durch Torsten Ahlemeyer noch angedacht (und teilweise 
+auch schon in hoeheren Versionen seiner lokalen Umgebung testweise implementiert):
+=====================================================================================
+
+Endspieldatenbank:
+Ab einer gewissen Restzahl von Figuren soll der Rechner in den hoeheren Spielstufen auf eine 
+Endspieldatenbank zurückgreifen, in den alle Gewinnzuege hinterlegt sind.
+
+
+Zeitbegrenzung:
+=================================
+a) beide Spieler verfuegen jeweils ueber eine Uhr, die eine Zeitvorgabe je Partie fuer jeden 
+   Spieler bereit stellt (unabhaengig voneinander, so dass unterschiedliche Startwerte = 
+   Vorgabepartien moeglich sind). Die Uhr des jeweils aktiven Spielers laeuft, die des passiven
+   Spielers steht. Laeuft die Uhr eines Spielers vor einem regulaeren Spielende ab, verliert der 
+   aktive Spieler die Partie.
+b) Die Zeitbegrenzung ist nicht nur pro Partie moeglich, sondern auch auf eine Zeitbegrenzung fuer 
+   die ersten x Zuege konfigurierbar. Minuten- sowie Zugzahl fuer die Grenze sind einstellbar.
+   Nach Erreichen der Mindestzugzahl ist pro Spieler 
+      1) eine weitere Zeitbegrenzung fuer die naechsten y Zuege zu aktivieren. Weitere regeln wie 
+	     oben    -- oder --
+      2) ein weiteres Zeitguthaben additiv zu aktivieren, gegen das der Spieler nun antritt. Fuer 
+	     jeden Zug bekommt der Spieler z Sekunden gutgeschrieben. Das additive Zeitguthaben sowie
+		 die Gutschrift je Zug sind konfigurierbar.
+
+Remisangebot:
+=================================
+a) Der aktive Spieler benoetigt eine Prozedur, mit der er ein Remisangebot unterbreiten kann
+   offene Frage --> laeuft die Zeit des Remis-anbietenden Spielers derweil weiter?
+b) Der inaktive Spieler benoetigt eine Prozedur, mit der er ein Remisangebot unterbreiten kann
+   offene Frage --> laeuft die Zeit des aktiven Spielers derweil weiter?
+
+
+"Matt-in-n-Zuegen"-Editor
+=================================
+Es muss einen "Editor" geben, mit dem man derartige Aufgaben (siehe bspw. https://www.yacpdb.org/)
+einfacher fassen kann. Das Programm soll dann die passenden Gewinnzuege ermitteln koennen.
+Zu beruecksichten ist, dass bei der Eingabe auch zu erfassen ist, 
+  1) wer am Zug ist
+  2) ob die kurze/lange Rochade von WEISS/SCHWARZ noch erlaubt ist
+

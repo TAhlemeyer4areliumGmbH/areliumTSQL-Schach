@@ -1,0 +1,105 @@
+-- ###########################################################################################
+-- ### Spiel der Koenige - Workshopversion ###################################################
+-- ###########################################################################################
+-- ### Erstellung der Funktion [Infrastruktur].[fncSekundenAlsUhrzeitFormatieren]          ###
+-- ### ----------------------------------------------------------------------------------- ###
+-- ### Eine uebergebene Zahl an Sekudnen wird in eine Angabe von Stunden, Minuten und      ###
+-- ### Sekunden umgewandelt. Das Rueckgabeformat ist eine String der Form hh:mm:ss.        ###
+-- ### ----------------------------------------------------------------------------------- ###
+-- ### Sicherheitshinweis:                                                                 ###
+-- ###      Ueber diese Befehlssammlung werden Datenbankobjekte angelegt, geaendert oder   ###
+-- ###      geloescht. Auch koennen Inhalte hinzugefuegt, manipuliert oder entfernt        ###
+-- ###      werden. In produktiven Umgebungen darf dieses Skript NICHT eingesetzt werden,  ###
+-- ###      um versehentliche Auswirkungen auf sonstige Strukturen auszuschliessen.        ###
+-- ###                                                                                     ###
+-- ### Erstellung:                                                                         ###
+-- ###      Torsten Ahlemeyer fuer arelium GmbH, www.arelium.de                            ###
+-- ### ----------------------------------------------------------------------------------- ###
+-- ### Aenderungsnachweis:                                                                 ###
+-- ###     1.00.0	2023-02-27	Torsten Ahlemeyer                                          ###
+-- ###              Initiale Erstellung                                                    ###
+-- ###########################################################################################
+
+
+--------------------------------------------------------------------------------------------------
+-- Statistiken -----------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+
+-- temporaere Tabelle anlegen, um sich die Startzeit zu merken
+BEGIN TRY
+	DROP TABLE #Start
+END TRY
+BEGIN CATCH
+END CATCH
+
+CREATE TABLE #Start (StartTime DATETIME)
+INSERT INTO #Start (StartTime) VALUES (GETDATE())
+
+
+
+--------------------------------------------------------------------------------------------------
+-- Nutzinhalt ------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+
+USE [arelium_TSQL_Schach_V012]
+GO
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- -----------------------------------------------------------------------------------------
+-- Erstellung der Funktion [Infrastruktur].[fncSekundenAlsUhrzeitFormatieren]
+-- -----------------------------------------------------------------------------------------
+CREATE OR ALTER FUNCTION [Infrastruktur].[fncSekundenAlsUhrzeitFormatieren]
+(
+    @AnzahlSekunden AS INTEGER
+)
+RETURNS CHAR(8)
+AS
+BEGIN
+	DECLARE @Rueckgabe		AS CHAR(8)
+	DECLARE @Stunden		AS INTEGER
+	DECLARE @Minuten		AS INTEGER
+	DECLARE @Sekunden		AS INTEGER
+
+	SET @STUNDEN			= (@AnzahlSekunden - (@AnzahlSekunden % 3600)) / 3600
+	SET @AnzahlSekunden		= @AnzahlSekunden - @Stunden * 3600
+	SET @Minuten			= (@AnzahlSekunden - (@AnzahlSekunden % 60)) / 60
+	SET @AnzahlSekunden		= @AnzahlSekunden - @Minuten * 60
+	SET @Sekunden			= @AnzahlSekunden
+
+	SET @Rueckgabe = RIGHT('00' + @Stunden, 2) + ':' 
+						+ RIGHT('00' + @Minuten, 2) + ':'
+						+ RIGHT('00' + @Sekunden, 2)
+	
+	RETURN @Rueckgabe
+END
+GO
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Statistiken ---------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
+DECLARE @Ende		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
+DECLARE @Zeit		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
+DECLARE @Skript		VARCHAR(100)	= '022 - Funktion [Infrastruktur].[fncSekundenAlsUhrzeitFormatieren] erstellen.sql'
+PRINT ' '
+PRINT 'Skript     :   ' + @Skript
+PRINT 'Ende       :   ' + @Ende
+PRINT 'Zeit       :   ' + @Zeit
+SELECT @Skript AS Skript, @Ende AS Ende, @Zeit AS Zeit
+GO
+
+
+/*
+USE [arelium_TSQL_Schach_V012]
+GO
+
+SELECT [Infrastruktur].[fncSekundenAlsUhrzeitFormatieren](2000)
+GO
+
+*/

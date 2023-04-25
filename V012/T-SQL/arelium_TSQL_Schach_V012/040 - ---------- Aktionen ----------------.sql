@@ -1,0 +1,24 @@
+-- Aktionen sind alle Zugmoeglichkeiten, die einem Spieler laut Spielregeln zur Verfuegung stehen
+
+-- Dabei sind mehrere Arten von Aktionen zu unterscheiden:
+--    * Theoretische Aktionen:
+--      Es handelt sich um alle theoretisch denkbaren Spielzuege, soweit die Spielregeln diese vorsehen. 
+--      Dies umfasst auch Sonderregeln wie die Rochade, die Bauernumwandlung und "en passant".
+--      Dabei ist es nicht relevant, ob die aktuelle Stellung diesen Zug auch erlaubt - wichtig ist nur,
+--      ob es diesen Zug gibt oder nicht. Ist ein Zug nicht in dieser Menge enthalten, ist er auf jeden Fall 
+--      illegal.
+--    * moegliche Aktionen:
+--      diese Untermenge der "theoretischen Aktionen" wird nur aus den Datensaetzen gebildet, die auch im 
+--      Kontext der aktuellen Stellung und des Zugrechtes erlaubt sind. Relevant sind bspw. die Fragen:
+--         * steht auf dem Startfeld die richtige Figur in der passenden Farbe?
+--         * steht auf dem Zielfeld einen gegnerische Figur (= "Schlag") oder ist dises leer (="Zug")?
+--         * ist der Weg vom Start zum Ziel frei von Hindernissen (gilt nicht fuer Springer)?
+--         * darf sich die Figur auf dem Startfeld ueberhaupt bewegen (Stichwort "Fesselung")?
+--         * stellt sich der aktive Spieler mit der Aktion nicht selber ins Schach (Koenig direkt neben Koenig)?
+--    * moegliche Schlaege:
+--      Es handelt sich um eine Untermenge der "moeglichen Aktionen" - naemlich nur die Datensaetze, bei denen
+--      auf dem Zielfeld eine gegnerische Figur steht.
+--    * virtuelle Schlaege:
+--      Um bspw. die Rechtmaessigkeit einer Rochademoeglichkeit beurteilen zu koennen, ist die Frage relevant, ob der 
+--      Koenig von einem, auf ein oder ueber ein bedrohtes Feld ziehen muss. Es gilt also ueberpruefen zu koennen, ob
+--      der Gegner mit seinem naechsten Zug ein bestimmtes Feld "schlagend" erreichen kann (ein "Zug" reicht nicht!)
