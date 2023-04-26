@@ -73,11 +73,10 @@ AS (
 						  [WEISS].[VollzugID]
 						, [WEISS].[KurzeNotationEinfach]
 						, CONVERT(VARCHAR(3), [WEISS].[VollzugID]) + '.' + [WEISS].[KurzeNotationEinfach]
-						  + ' ' + [SCHWARZ].[KurzeNotationEinfach] AS [Vollzug]
+						  + ' ' + ISNULL([SCHWARZ].[KurzeNotationEinfach], '') AS [Vollzug]
 					FROM [Spiel].[Notation] AS [WEISS]
 					LEFT JOIN [Spiel].[Notation] AS [SCHWARZ]
-						ON [WEISS].[VollzugID] = [SCHWARZ].[VollzugID]
-					WHERE 1 = 1
+						ON [WEISS].[VollzugID]				= [SCHWARZ].[VollzugID]
 						AND [WEISS].[IstSpielerWeiss]		= 'TRUE'
 						AND [SCHWARZ].[IstSpielerWeiss]		= 'FALSE'
 					ORDER BY [WEISS].[VollzugID] ASC
