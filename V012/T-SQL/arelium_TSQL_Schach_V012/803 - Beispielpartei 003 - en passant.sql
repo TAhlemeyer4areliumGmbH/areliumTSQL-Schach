@@ -71,7 +71,8 @@ EXECUTE [Spiel].[prcInitialisierung]
   ,@SpielstaerkeSchwarz				= 1			-- menschlicher Gegner
   ,@RestzeitWeissInSekunden			= 5400		-- Beispiel: 1 Stunde und 30 Minuten = 5400 Sekunden
   ,@RestzeitSchwarzInSekunden		= 7200		-- Beispiel: 2 Stunden = 7200 Sekunden
-  ,@ComputerSchritteAnzeigen		= 'TRUE'
+  ,@ComputerSchritteAnzeigenWeiss	= 'TRUE'	
+  ,@ComputerSchritteAnzeigenSchwarz	= 'FALSE'
 GO
 
 
