@@ -22,6 +22,7 @@
 -- ###                                                                                     ###
 -- ### Erstellung:                                                                         ###
 -- ###      Torsten Ahlemeyer fuer arelium GmbH, www.arelium.de                            ###
+-- ###      Kontakt: torsten.ahlemeyer@arelium.de                                          ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Aenderungsnachweis:                                                                 ###
 -- ###     1.00.0	2023-02-27	Torsten Ahlemeyer                                          ###

@@ -19,6 +19,7 @@
 -- ###                                                                                     ###
 -- ### Erstellung:                                                                         ###
 -- ###      Torsten Ahlemeyer fuer arelium GmbH, (https://www.arelium.de)                  ###
+-- ###      Kontakt: torsten.ahlemeyer@arelium.de                                          ###
 -- ###      ----------------                                                               ###
 -- ###      Ein grosser Dank geht an (MVP) Uwe Ricken, der dem Projekt mit mit Rat und     ###
 -- ###      Tat vor allem (aber nicht nur) im Bereich der Laufzeitoptimierung zur Seite    ###
@@ -98,9 +99,9 @@ END
 CREATE DATABASE [arelium_TSQL_Schach_V012]
  CONTAINMENT = NONE
  ON  PRIMARY 
-( NAME = N'arelium_TSQL_Schach_V012',		FILENAME = N'C:\TAH_Bewegtdaten\Datenbanken\Projekte\arelium_TSQL_Schach_V012\arelium_TSQL_Schach_V012.mdf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+( NAME = N'arelium_TSQL_Schach_V012',		FILENAME = N'D:\Beruf\arelium\Datenbanken\arelium_TSQL_Schach_V012.mdf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
  LOG ON 
-( NAME = N'arelium_TSQL_Schach_V012_log',	FILENAME = N'C:\TAH_Bewegtdaten\Datenbanken\Projekte\arelium_TSQL_Schach_V012\arelium_TSQL_Schach_V012_log.ldf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+( NAME = N'arelium_TSQL_Schach_V012_log',	FILENAME = N'D:\Beruf\arelium\Datenbanken\arelium_TSQL_Schach_V012_log.ldf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
 GO
 ALTER DATABASE [arelium_TSQL_Schach_V012] SET COMPATIBILITY_LEVEL = 150
 GO
