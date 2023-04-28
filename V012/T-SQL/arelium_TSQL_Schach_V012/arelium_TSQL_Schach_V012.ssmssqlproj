@@ -3,54 +3,6 @@
   <Items>
     <LogicalFolder Name="Connections" Type="2" Sorted="true">
       <Items>
-        <ConnectionNode Name="(local):">
-          <Created>2023-04-17T14:28:11.2569608+02:00</Created>
-          <Type>SQL</Type>
-          <Server>(local)</Server>
-          <UserName />
-          <Authentication>SQL</Authentication>
-          <InitialDB />
-          <LoginTimeout>30</LoginTimeout>
-          <ExecutionTimeout>0</ExecutionTimeout>
-          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
-        </ConnectionNode>
-        <ConnectionNode Name="(local):">
-          <Created>2023-04-21T22:35:04.1491613+02:00</Created>
-          <Type>SQL</Type>
-          <Server>(local)</Server>
-          <UserName />
-          <Authentication>SQL</Authentication>
-          <InitialDB>arelium_TSQL_Schach_V012</InitialDB>
-          <LoginTimeout>30</LoginTimeout>
-          <ExecutionTimeout>0</ExecutionTimeout>
-          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Abfrage</ApplicationName>
-        </ConnectionNode>
-        <ConnectionNode Name="(local):">
-          <Created>2023-04-25T11:51:06.5422128+02:00</Created>
-          <Type>SQL</Type>
-          <Server>(local)</Server>
-          <UserName />
-          <Authentication>SQL</Authentication>
-          <InitialDB>master</InitialDB>
-          <LoginTimeout>30</LoginTimeout>
-          <ExecutionTimeout>0</ExecutionTimeout>
-          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
-        </ConnectionNode>
-        <ConnectionNode Name="(local):">
-          <Created>2023-04-25T22:05:50.5090162+02:00</Created>
-          <Type>SQL</Type>
-          <Server>(local)</Server>
-          <UserName />
-          <Authentication>SQL</Authentication>
-          <InitialDB>BattleShips2021</InitialDB>
-          <LoginTimeout>30</LoginTimeout>
-          <ExecutionTimeout>0</ExecutionTimeout>
-          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Abfrage</ApplicationName>
-        </ConnectionNode>
         <ConnectionNode Name="(local):ARELIUMLOCAL\torsten.ahlemeyer">
           <Created>2023-04-26T10:21:05.2433504+02:00</Created>
           <Type>SQL</Type>
@@ -457,6 +409,12 @@
           <AssociatedConnUserName />
           <FullPath>212 - Grossmeisterpartien einlesen.sql</FullPath>
         </FileNode>
+        <FileNode Name="215 - Funktion [Bibliothek].[fncSplitKurzeNotation] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>215 - Funktion [Bibliothek].[fncSplitKurzeNotation] erstellen.sql</FullPath>
+        </FileNode>
         <FileNode Name="300 - ---------- n-Zuege-voraus ----------------.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
@@ -468,6 +426,12 @@
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>310 - MiniMax-Algorithmus am Beispiel.sql</FullPath>
+        </FileNode>
+        <FileNode Name="400 - ---------- Einzelaktionen ----------------.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>400 - ---------- Einzelaktionen ----------------.sql</FullPath>
         </FileNode>
         <FileNode Name="401 - Prozedur [Spiel].[prcZugSimulieren] erstellen.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
@@ -498,6 +462,12 @@
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>412 - Prozedur [Spiel].[prcRemisangebotAnnehmen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="500 - ---------- Spielsteuerung ----------------.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>500 - ---------- Spielsteuerung ----------------.sql</FullPath>
         </FileNode>
         <FileNode Name="510 - Prozedur [Spiel].[prcInitialisierung] erstellen.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>

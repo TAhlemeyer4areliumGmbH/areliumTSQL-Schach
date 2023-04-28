@@ -102,9 +102,14 @@ BEGIN
 	DECLARE @EloWertWeiss				AS NVARCHAR(50)
 	DECLARE @EloWertSchwarz				AS NVARCHAR(50)
 	DECLARE @ECO						AS NVARCHAR(30)
+	DECLARE @ReversePfad				AS VARCHAR(255)
+	
+	SET @ReversePfad  = REVERSE(@KompletterDateiAblagePfad)
+	SET @ReversePfad  = REVERSE(LEFT(@ReversePfad, CHARINDEX('\', @ReversePfad, 1) - 1))
 
 	TRUNCATE TABLE [Infrastruktur].[PNG_Stufe1]
 	TRUNCATE TABLE [Infrastruktur].[PNG_Stufe2]
+	DELETE FROM [Bibliothek].[Partiemetadaten] WHERE [Quelle] = @ReversePfad
 
 	SET @SQL = 'BULK INSERT [Infrastruktur].[PNG_Stufe1] FROM ''' 
 		+ @KompletterDateiAblagepfad 
@@ -195,7 +200,7 @@ BEGIN
 			, (SUBSTRING(@EloWertWeiss,			CHARINDEX ('"', @EloWertWeiss ) + 1,		LEN(@EloWertWeiss) -		CHARINDEX ('"', @EloWertWeiss ) - 2))
 			, (SUBSTRING(@EloWertSchwarz,		CHARINDEX ('"', @EloWertSchwarz ) + 1,		LEN(@EloWertSchwarz) -		CHARINDEX ('"', @EloWertSchwarz ) - 2))
 			, (SUBSTRING(@ECO,					CHARINDEX ('"', @ECO ) + 1,					LEN(@ECO) -					CHARINDEX ('"', @ECO ) - 2))
-			, @Notationszeile
+			, @Notationszeile + ' ' -- das Leerzeichen ist notwendig, um spaeter mehrere Notationszeilen fehlerfrei aneinander haengen zu koennen
 
 				   )
 
@@ -245,13 +250,13 @@ BEGIN
 	UPDATE [Bibliothek].[Partiemetadaten]	SET [EloWertSchwarz]	= NULL		WHERE [EloWertSchwarz]	= 0
 	UPDATE [Bibliothek].[Partiemetadaten]	SET [Runde]				= NULL		WHERE [Runde]			= '?'
 	UPDATE [Bibliothek].[Partiemetadaten]	SET [Seite]				= NULL		WHERE [Seite]			= '?'
-	UPDATE [Bibliothek].[Partiemetadaten]	SET [KurzeNotation]		= 
-			CASE 
-				WHEN LEFT([Ergebnis],3) = '1-0' THEN TRIM(LEFT([KurzeNotation], CHARINDEX('1-0', [KurzeNotation], 1) - 1))
-				WHEN LEFT([Ergebnis],3) = '0-1' THEN TRIM(LEFT([KurzeNotation], CHARINDEX('0-1', [KurzeNotation], 1) - 1))
-				WHEN LEFT([Ergebnis],3) = '1/2' THEN TRIM(LEFT([KurzeNotation], CHARINDEX('1/2', [KurzeNotation], 1) - 1))
-				ELSE NULL
-			END
+	--UPDATE [Bibliothek].[Partiemetadaten]	SET [KurzeNotation]		= 
+	--		CASE 
+	--			WHEN LEFT([Ergebnis],3) = '1-0' THEN TRIM(LEFT([KurzeNotation], CHARINDEX('1-0', [KurzeNotation], 1) - 1))
+	--			WHEN LEFT([Ergebnis],3) = '0-1' THEN TRIM(LEFT([KurzeNotation], CHARINDEX('0-1', [KurzeNotation], 1) - 1))
+	--			WHEN LEFT([Ergebnis],3) = '1/2' THEN TRIM(LEFT([KurzeNotation], CHARINDEX('1/2', [KurzeNotation], 1) - 1))
+	--			ELSE NULL
+	--		END
 END
 GO
 
