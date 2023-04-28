@@ -160,6 +160,21 @@ GO
 -- hauptsaechlich genutzt, um Tabelleninhalte an Prozeduren und Funktionen uebergeben zu koennen
 
 
+
+-- in dieser Datenstruktur sollen die aufgesplittenten Grossmeisterpartien abgelegt
+-- werden koennen.
+IF NOT EXISTS (SELECT * FROM sys.types WHERE name = N'typGMsplit')
+	CREATE TYPE typGMsplit 
+		AS TABLE ( 
+			  [VollzugID]					INTEGER			NOT NULL
+			, [Weiss]						VARCHAR(20)		NOT NULL
+			, [Schwarz]						VARCHAR(20)		NULL
+		)
+GO
+
+
+
+
 -- in dieser Datenstruktur sollen die Kriterien fuer die Stellunsgbewertung abgelegt
 -- werden koennen.
 IF NOT EXISTS (SELECT * FROM sys.types WHERE name = N'typBewertung')
