@@ -481,6 +481,30 @@ BEGIN
 													SET		[Weiss] = NULL, [Schwarz] = NULL
 												END
 
+
+
+												-- das aktuelle Spielbrett in den Spielverlauf einfuegen
+												INSERT INTO [Spiel].[Spielbrettverlauf]
+														   ( [VollzugID]
+														   , [Spalte]
+														   , [Reihe]
+														   , [Feld]
+														   , [IstSpielerWeiss]
+														   , [FigurBuchstabe]
+														   , [FigurUTF8])
+												SELECT
+													  (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])
+													, [Spalte]
+													, [Reihe]
+													, [Feld]
+													, (SELECT [Spiel].[fncIstWeissAmZug]())
+													, [FigurBuchstabe]
+													, [FigurUTF8]
+												  FROM [Infrastruktur].[Spielbrett]
+
+
+
+
 												-- Das Amaturenbrett inklusive Spielbrett wird neu gezeichnet
 												SELECT * FROM [Infrastruktur].[vSpielbrett]
 

@@ -158,6 +158,8 @@ INSERT INTO ##System (DeploymentSystem)
 :r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\203 - Prozedur [Bibliothek].[prcImportPGN] erstellen.sql"		
 :r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\205 - Prozedur [Bibliothek].[prcGrossmeisterpartienEinlesen] erstellen.sql"		
 :r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\206 - Prozedur [Bibliothek].[prcKurzeNotationAufbereiten] erstellen.sql"		
+:r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\212 - Grossmeisterpartien einlesen.sql"		
+:r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\215 - Funktion [Bibliothek].[fncSplitKurzeNotation] erstellen.sql"		
 
 :r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\310 - MiniMax-Algorithmus am Beispiel.sql"
 

@@ -2,17 +2,16 @@
 -- ### arelium_TSQL_Schach_V012 ##############################################################
 -- ### Das Spiel der Koenige - Projektversion ################################################
 -- ###########################################################################################
--- ### Einlesen der Grossmeisterpartien fuer die Eroeffnungsbibliothek                     ###
+-- ### Zu einem bestimmten Zug in der Partiehistorie zurueck gehen                         ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### Dieses Programm kann Dateien im Format PGN im BULK-Verfahren einlesen und die dort  ###
--- ### gespeicherten Informationen zu Analysezwecken und/oder nutzen, um dem Computer-     ###
--- ### gegner auf Grossmeisterniveau zu heben. Unkommentierte Partiemittschnitte lassen    ###
--- ### kostenfrei aus dem Internet herunterladen. Derartige Textdateien bestehen aus einem ###
--- ### Metateil mit Partieinformationen (wer gegen wen, wann und wo gespielt, ...) und der ###
--- ### "kurzen Notation" der gesamten Partie. Diese Daten sind sauber zu trennen und dann  ###
--- ### aufzubereiten, so dass sie spaeter in Tabellenform abgefragt werden koennen.        ###
+-- ### Zu Uebungszwecken, beim testen oder im Spiel mit einem Neuling entsteht haeufig der ###
+-- ### Wunsch einen oder mehrere Zuege einer Partie zurueckzunehmen. Diese Funktion ist in ###
+-- ### regulaeren Spielen verboten! Sie fuehrt daher fuer das Punktekonto zum sofortigen   ###
+-- ### Verlust der Partie.                                                                 ###
 -- ###                                                                                     ###
--- ### Das Script ist bzgl. der Ablagepfade zu den einzulesenden Dateien anzupassen!       ###
+-- ### Der Aufruf der Prozedur setzt die Angabe von zwei Parametern voraus:                ###
+-- ###    - die Nummer des Vollzuges                                                       ###
+-- ###    - die Information, ob als naechstes WEISS oder SCHWARZ zieht                     ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Sicherheitshinweis:                                                                 ###
 -- ###      Ueber diese Befehlssammlung werden Datenbankobjekte angelegt, geaendert oder   ###
@@ -29,7 +28,7 @@
 -- ###      stand und steht (https://www.db-berater.de/).                                  ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Aenderungsnachweis:                                                                 ###
--- ###     1.00.0	2023-04-17	Torsten Ahlemeyer                                          ###
+-- ###     1.00.0	2023-02-07	Torsten Ahlemeyer                                          ###
 -- ###              Initiale Erstellung mit Default-Werten                                 ###
 -- ###########################################################################################
 -- ### COPYRIGHT-Hinweis (siehe https://creativecommons.org/licenses/by-nc-sa/3.0/de/)     ###
@@ -61,6 +60,8 @@ INSERT INTO #Start (StartTime) VALUES (GETDATE())
 --------------------------------------------------------------------------------------------------
 -- Kompatiblitaetsblock --------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
+
+-- auf die Projekt-DB wechseln
 USE [arelium_TSQL_Schach_V012]
 GO
 
@@ -74,64 +75,113 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
--- ------------------------------------------------------------------------------
--- --- Gesammelte Grossmeisterpartien von Emanuel Lasker einlesen
--- ------------------------------------------------------------------------------
-DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
-DECLARE @MaxZaehler						INTEGER
+-----------------------------
+-- Aufraeumarbeiten ---------
+-----------------------------
+-- Dank des "CREATE OR ALTER"-Befehls ist ein vorheriges Loeschen des Datenbankobjektes 
+-- nicht mehr noetig.
 
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Lasker.pgn'
-SET @MaxZaehler					= 100
+--------------------------------------------------------------------------------------------------
+-- Aufbauarbeiten --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
 
-EXECUTE [Bibliothek].[prcImportPGN] 
-   @KompletterDateiAblagepfad
-  ,@MaxZaehler
+
+CREATE OR ALTER PROCEDURE [Spiel].[prcZurueckZuZug]
+	  @VollzugID				BIGINT
+	, @IstSpielerWeiss			BIT
+AS
+BEGIN
+	SET NOCOUNT ON;
+	DECLARE @BSpielbrett			AS [dbo].[typStellung]
+
+	IF @VollzugID <= (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])
+	BEGIN
+
+		-- Die Notation anpassen
+		DELETE FROM [Spiel].[Notation] WHERE [VollzugID] > @VollzugID
+		IF @IstSpielerWeiss = 'FALSE'
+		BEGIN
+			DELETE FROM [Spiel].[Notation] WHERE [VollzugID] = @VollzugID AND [IstSpielerWeiss] = 'FALSE'
+		END
+	
+		-- den Spielbrettverlauf anpassen
+		DELETE FROM [Spiel].[Spielbrettverlauf] WHERE [VollzugID] > @VollzugID
+		IF @IstSpielerWeiss = 'FALSE'
+		BEGIN
+			DELETE FROM [Spiel].[Spielbrettverlauf] WHERE [VollzugID] = @VollzugID AND [IstSpielerWeiss] = 'FALSE'
+		END
+	
+		-- Das Spielbrett aktualisieren
+		DELETE FROM [Infrastruktur].[Spielbrett]
+
+		INSERT INTO [Infrastruktur].[Spielbrett](
+			  [Spalte]
+			, [Reihe]
+			, [Feld]
+			, [IstSpielerWeiss]
+			, [FigurBuchstabe]
+			, [FigurUTF8])
+		SELECT 
+			  [Spalte]
+			, [Reihe]
+			, [Feld]
+			, [IstSpielerWeiss]
+			, [FigurBuchstabe]
+			, [FigurUTF8]
+		FROM [Spiel].[Spielbrettverlauf]
+		WHERE 1 = 1
+			AND [VollzugID] = (SELECT MAX([VollzugID]) FROM [Spiel].[Spielbrettverlauf])
+			AND [IstSpielerWeiss] = (@IstSpielerWeiss + 1) % 2
+
+		-- Das Spielbrett darstellen
+		SELECT * FROM [Infrastruktur].[vSpielbrett]
+
+
+		-- Die aus der neuen Stellung moeglichen Zugvarianten ermitteln
+		IF @IstSpielerWeiss = 'TRUE'
+		BEGIN
+			EXECUTE [Spiel].[prcAktionenFuerAktuelleStellungWegschreiben] @IstSpielerWeiss = 'FALSE', @IstStellungZuBewerten = 'TRUE', @AktuelleStellung = @BSpielbrett
+		END
+		ELSE
+		BEGIN
+			EXECUTE [Spiel].[prcAktionenFuerAktuelleStellungWegschreiben] @IstSpielerWeiss = 'TRUE', @IstStellungZuBewerten = 'TRUE', @AktuelleStellung = @BSpielbrett
+		END
+
+		-- evtl. den Schritt "moegliche Zuege ermitteln" auch an der Oberflaeche anzeigen
+		IF 1 = 1
+			AND (SELECT [ComputerSchritteAnzeigen]	FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
+			AND (SELECT [SpielstaerkeID]			FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) <> 1
+		BEGIN
+			PRINT 'moegliche Zuege ermitteln...'
+		END
+	
+		-- Das aktuelle Brett einlesen
+		INSERT INTO @BSpielbrett
+		SELECT 
+			  1								AS [VarianteNr]
+			, 1								AS [Suchtiefe]
+			, [SB].[Spalte]					AS [Spalte]
+			, [SB].[Reihe]					AS [Reihe]
+			, [SB].[Feld]					AS [Feld]
+			, [SB].[IstSpielerWeiss]		AS [IstSpielerWeiss]
+			, [SB].[FigurBuchstabe]			AS [FigurBuchstabe]
+			, [SB].[FigurUTF8]				AS [FigurUTF8]
+		FROM [Infrastruktur].[Spielbrett]	AS [SB]
+
+		-- Statistiken aktualisieren
+		IF (SELECT [ComputerSchritteAnzeigen] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
+		BEGIN
+			EXECUTE [Statistik].[prcStellungBewerten] @IstSpielerWeiss,	@BSpielbrett
+		END
+		ELSE
+		BEGIN
+			UPDATE [Statistik].[Stellungsbewertung]
+			SET		[Weiss] = NULL, [Schwarz] = NULL
+		END
+
+	END
+END
 GO
-
--- ------------------------------------------------------------------------------
--- --- Gesammelte Grossmeisterpartien von Uwe Huebner einlesen
--- ------------------------------------------------------------------------------
-DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
-DECLARE @MaxZaehler						INTEGER
-
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Huebner.pgn'
-SET @MaxZaehler					= 150
-
-EXECUTE [Bibliothek].[prcImportPGN] 
-   @KompletterDateiAblagepfad
-  ,@MaxZaehler
-GO
-
--- ------------------------------------------------------------------------------
--- --- Gesammelte Grossmeisterpartien von Gari Kasparov einlesen
--- ------------------------------------------------------------------------------
-DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
-DECLARE @MaxZaehler						INTEGER
-
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Kasparov.pgn'
-SET @MaxZaehler					= 100
-
-EXECUTE [Bibliothek].[prcImportPGN] 
-   @KompletterDateiAblagepfad
-  ,@MaxZaehler
-GO
-
-
--- ------------------------------------------------------------------------------
--- --- Gesammelte Grossmeisterpartien von Anatoli Karpov einlesen
--- ------------------------------------------------------------------------------
-DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
-DECLARE @MaxZaehler						INTEGER
-
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Karpov.pgn'
-SET @MaxZaehler					= 100
-
-EXECUTE [Bibliothek].[prcImportPGN] 
-   @KompletterDateiAblagepfad
-  ,@MaxZaehler
-GO
-
-
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -140,10 +190,24 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @Ende		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Zeit		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Skript		VARCHAR(100)	= '212 - Grossmeisterpartien einlesen.sql'
+DECLARE @Skript		VARCHAR(100)	= '413 - Prozedur [Spiel].[prcZurueckZuZug] erstellen.sql'
 PRINT ' '
 PRINT 'Skript     :   ' + @Skript
 PRINT 'Ende       :   ' + @Ende
 PRINT 'Zeit       :   ' + @Zeit
 SELECT @Skript AS Skript, @Ende AS Ende, @Zeit AS Zeit
 GO
+
+
+
+
+
+/*
+
+USE [arelium_TSQL_Schach_V012]
+GO
+
+EXEC [Spiel].[prcRemisangebotAnnehmen]
+GO
+
+*/

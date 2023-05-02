@@ -4,7 +4,7 @@
 -- ###########################################################################################
 -- ### Ein Remis annehmen                                                                  ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### Wurde ein Remis angeboten, kann einfach wieter gespielt wreden - das Angebot gilt   ###
+-- ### Wurde ein Remis angeboten, kann einfach weiter gespielt werden - das Angebot gilt   ###
 -- ### dann als abgelehnt. Soll es angenommen werden, ist diese Prozedur zu bemuehen.      ###
 -- ###                                                                                     ###
 -- ### Der Aufruf der Prozedur fuehrt zur sofortigen Punkteteilung.                        ###

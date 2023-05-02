@@ -2,7 +2,7 @@
 -- ### arelium_TSQL_Schach_V012 ##############################################################
 -- ### Das Spiel der Koenige - Projektversion ################################################
 -- ###########################################################################################
--- ### Beispielpartie 005                                                                  ###
+-- ### Beispielpartie 006                                                                  ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Dieses Skript simuliert eine komplette Schachpartie und soll die Features dieses    ###
 -- ### Programms vorstellen. Man fuehrt es Schritt fuer Schritt aus.                       ###
@@ -77,41 +77,26 @@ GO
 
 
 
--- Die Zeit fuer WEISS laeuft...
-
--- Es zieht WEISS den ersten Zug -> Bauer von e2 nach e4
-EXECUTE [Spiel].[prcZugAusfuehren] 
-		  @Startquadrat				= 'e2'
-		, @Zielquadrat				= 'e4'
-		, @Umwandlungsfigur			= NULL
-		, @IstEnPassant				= 'FALSE'
-		, @IstSpielerWeiss			= 'TRUE'
+-- Vollzug 001
+EXECUTE [Spiel].[prcZugAusfuehren] 'd2', 'd4', NULL, 'FALSE', 'TRUE'
 GO	
-
-
--- Die Zeit fuer SCHWARZ laeuft...
-
--- Es zieht SCHWARZ den ersten Zug -> Springer von b8 nach c6
-EXECUTE [Spiel].[prcZugAusfuehren] 
-		  @Startquadrat				= 'e7'
-		, @Zielquadrat				= 'e5'
-		, @Umwandlungsfigur			= NULL
-		, @IstEnPassant				= 'FALSE'
-		, @IstSpielerWeiss			= 'FALSE'
-GO	
+EXECUTE [Spiel].[prcZugAusfuehren] 'g7', 'g6', NULL, 'FALSE', 'FALSE'
+GO
 
 -- Vollzug 002
-EXECUTE [Spiel].[prcZugAusfuehren] 'g1', 'f3', NULL, 'FALSE', 'TRUE'
+EXECUTE [Spiel].[prcZugAusfuehren] 'b1', 'c3', NULL, 'FALSE', 'TRUE'
 GO	
-EXECUTE [Spiel].[prcZugAusfuehren] 'b8', 'c6', NULL, 'FALSE', 'FALSE'
+EXECUTE [Spiel].[prcZugAusfuehren] 'f8', 'g7', NULL, 'FALSE', 'FALSE'
 GO	
 
 -- Vollzug 003
-EXECUTE [Spiel].[prcZugAusfuehren] 'f1', 'b5', NULL, 'FALSE', 'TRUE'
+EXECUTE [Spiel].[prcZugAusfuehren] 'g1', 'f3', NULL, 'FALSE', 'TRUE'
 GO	
-EXECUTE [Spiel].[prcZugAusfuehren] 'g8', 'f6', NULL, 'FALSE', 'FALSE'
+EXECUTE [Spiel].[prcZugAusfuehren] 'b7', 'b6', NULL, 'FALSE', 'FALSE'
 GO	
 
 -- Vollzug 004
-EXECUTE [Spiel].[prcZugAusfuehren] 'd2', 'd3', NULL, 'FALSE', 'TRUE'			-- ab hier keine Musterpartie in der DB
+EXECUTE [Spiel].[prcZugAusfuehren] 'c2', 'c4', NULL, 'FALSE', 'TRUE'			-- hier merkt WEISS, dass er eigentlich
+																				-- e2-e4 spielen wollte!
+
 GO	

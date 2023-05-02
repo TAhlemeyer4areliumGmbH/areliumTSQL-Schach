@@ -114,11 +114,13 @@ GO
 	DROP TABLE IF EXISTS [Spiel].[MoeglicheAktionen]
 	DROP TABLE IF EXISTS [Spiel].[Konfiguration]
 	DROP TABLE IF EXISTS [Spiel].[Zugverfolgung]
+	DROP TABLE IF EXISTS [Spiel].[Spielbrettverlauf]
 	
 	DROP TABLE IF EXISTS [Statistik].[Stellungsbewertung]
 
 	DROP TABLE IF EXISTS [Bibliothek].[Partiemetadaten]
 	DROP TABLE IF EXISTS [Bibliothek].[Grossmeisterpartien]
+	DROP TABLE IF EXISTS [Bibliothek].[aktuelleNachschlageoptionen]
 
 	DROP TABLE IF EXISTS [Infrastruktur].[PNG_Stufe1]
 	DROP TABLE IF EXISTS [Infrastruktur].[PNG_Stufe2]
@@ -405,6 +407,28 @@ GO
 -- -----------------------------------------------------------------------------------------------------------------
 
 
+-- Diese Tabelle stellt das aktuelle Spielbrett im Verlauf der gesamten Partie dar. 
+-- Fuer jedes Feld (Kombination aus Reihe und Spalte) wird festgehalten, ob und durch wen dieses Feld belegt ist.
+-- Diese Ansicht wird fuer jeden Zug vollstaendig wiederholt
+CREATE TABLE [Spiel].[Spielbrettverlauf](
+	  [VollzugID]					BIGINT		NOT NULL						-- Brettansicht VOR dem genannten Vollzug
+	, [Spalte]						CHAR(1)		NOT NULL						-- A-H
+	, [Reihe]						INTEGER		NOT NULL						-- 1-8
+	, [Feld]						INTEGER		NOT NULL						-- A1 = 1, A2 = 2, ..., B1 = 9, ...,  H8 = 64
+	, [IstSpielerWeiss]				BIT			NOT NULL						-- 1 = TRUE
+	, [FigurBuchstabe]				CHAR(1)		NOT NULL						-- (L)aeufer, (S)pringer, (T)urm, (K)oenig, (D)ame / Bauer = NULL
+		CHECK ([FigurBuchstabe] IN (NULL, 'L', 'S', 'T', 'K', 'D'))
+	, [FigurUTF8]					BIGINT		NOT NULL						-- UTF8-Wert der Figurengrafik
+	, CONSTRAINT [PK_Spielbrett] PRIMARY KEY CLUSTERED
+		(
+			  [VollzugID]					ASC
+			, [IstSpielerWeiss]				ASC
+			, [Feld]						ASC
+		)
+		WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, 
+		ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+	) ON [PRIMARY]
+GO
 
 
 

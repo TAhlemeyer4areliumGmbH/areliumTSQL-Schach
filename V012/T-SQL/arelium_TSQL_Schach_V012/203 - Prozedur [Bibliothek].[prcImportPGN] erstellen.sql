@@ -210,7 +210,10 @@ BEGIN
 
 				   )
 	
-		SELECT 'Verarbeite Satz ' + CONVERT(VARCHAR(9), @Zaehler) + '   ' + @Weiss + ' vs ' + @Schwarz + '    ' + @Notationszeile
+		SELECT 'Verarbeite Satz ' 
+			+ CONVERT(VARCHAR(9), @Zaehler) + '   ' 
+			+ @Weiss + ' vs ' + @Schwarz 
+			+ '    ' + @Notationszeile					AS [Import-Status]
 
 		DELETE FROM [Infrastruktur].[PNG_Stufe2] WHERE [ZeilenNr] <= @Obergrenze
 
@@ -238,11 +241,16 @@ BEGIN
 		SET @Zaehler = @Zaehler + 1
 	END
 
-	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation], 'N', 'S')
-	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation], 'B', 'L')
-	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation], 'Q', 'D')
-	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation], 'R', 'T')
-
+	-- Die PGN-Dateien koennen evtl. im internationalen Format geliefert worden sein, so dass
+	-- die Abkuerzungsbuchstaben der Figuren deren englischen Bezeichnungen entsprechen.
+	-- hier gilt es nun auf die deutsche Schreibweise umzuschwenken. Dabei ist zu beruecksichtigen, dass
+	-- bspw. "B" auch als Spaltenname "b" vorkommt...
+	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation] COLLATE Latin1_General_BIN, 'N', 'S')
+	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation] COLLATE Latin1_General_BIN, 'B', 'L')
+	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation] COLLATE Latin1_General_BIN, 'Q', 'D')
+	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation] COLLATE Latin1_General_BIN, 'R', 'T')
+	
+	-- zu kurze Partien (bspw: ein Spieler hat frueh aufgegeben) sollen nicht in der Bibliothek landen
 	DELETE FROM [Bibliothek].[Partiemetadaten]
 	WHERE 1 = 2
 		OR [Seite]					IS NULL
