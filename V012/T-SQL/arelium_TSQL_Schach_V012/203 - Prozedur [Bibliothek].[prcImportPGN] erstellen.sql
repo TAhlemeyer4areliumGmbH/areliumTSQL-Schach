@@ -165,6 +165,12 @@ BEGIN
 			SET @Schleifenzaehler = @Schleifenzaehler + 1
 		END
 
+		-- nur die ersten 14. Vollzuege sollen in die Eroeffnungsbibliothek
+		IF CHARINDEX(' 15.', @Notationszeile) <> 0
+		BEGIN
+			SET @Notationszeile = LEFT(@Notationszeile, CHARINDEX(' 15.', @Notationszeile))
+		END
+
 		SET @Quelle					= (SELECT RIGHT(@KompletterDateiAblagepfad, CHARINDEX('\', REVERSE(@KompletterDateiAblagepfad),1) - 1))
 		SET @Seite					= (SELECT TOP (1) [GanzeZeile] FROM [Infrastruktur].[PNG_Stufe2] WHERE [ZeilenNr] < @Obergrenze AND [GanzeZeile] LIKE '%Site%'		ORDER BY [ZeilenNr] ASC)
 		SET @Veranstaltungsdatum	= (SELECT TOP (1) [GanzeZeile] FROM [Infrastruktur].[PNG_Stufe2] WHERE [ZeilenNr] < @Obergrenze AND [GanzeZeile] LIKE '%Date%'		ORDER BY [ZeilenNr] ASC)
@@ -203,7 +209,7 @@ BEGIN
 			, @Notationszeile + ' ' -- das Leerzeichen ist notwendig, um spaeter mehrere Notationszeilen fehlerfrei aneinander haengen zu koennen
 
 				   )
-
+	
 		SELECT 'Verarbeite Satz ' + CONVERT(VARCHAR(9), @Zaehler) + '   ' + @Weiss + ' vs ' + @Schwarz + '    ' + @Notationszeile
 
 		DELETE FROM [Infrastruktur].[PNG_Stufe2] WHERE [ZeilenNr] <= @Obergrenze
@@ -232,6 +238,11 @@ BEGIN
 		SET @Zaehler = @Zaehler + 1
 	END
 
+	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation], 'N', 'S')
+	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation], 'B', 'L')
+	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation], 'Q', 'D')
+	UPDATE [Bibliothek].[Partiemetadaten] SET [KurzeNotation] = REPLACE([KurzeNotation], 'R', 'T')
+
 	DELETE FROM [Bibliothek].[Partiemetadaten]
 	WHERE 1 = 2
 		OR [Seite]					IS NULL
@@ -250,15 +261,25 @@ BEGIN
 	UPDATE [Bibliothek].[Partiemetadaten]	SET [EloWertSchwarz]	= NULL		WHERE [EloWertSchwarz]	= 0
 	UPDATE [Bibliothek].[Partiemetadaten]	SET [Runde]				= NULL		WHERE [Runde]			= '?'
 	UPDATE [Bibliothek].[Partiemetadaten]	SET [Seite]				= NULL		WHERE [Seite]			= '?'
-	--UPDATE [Bibliothek].[Partiemetadaten]	SET [KurzeNotation]		= 
-	--		CASE 
-	--			WHEN LEFT([Ergebnis],3) = '1-0' THEN TRIM(LEFT([KurzeNotation], CHARINDEX('1-0', [KurzeNotation], 1) - 1))
-	--			WHEN LEFT([Ergebnis],3) = '0-1' THEN TRIM(LEFT([KurzeNotation], CHARINDEX('0-1', [KurzeNotation], 1) - 1))
-	--			WHEN LEFT([Ergebnis],3) = '1/2' THEN TRIM(LEFT([KurzeNotation], CHARINDEX('1/2', [KurzeNotation], 1) - 1))
-	--			ELSE NULL
-	--		END
+
 END
 GO
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Statistiken ---------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
+DECLARE @Ende		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
+DECLARE @Zeit		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
+DECLARE @Skript		VARCHAR(100)	= '203 - Prozedur [Bibliothek].[prcImportPGN] erstellen.sql'
+PRINT ' '
+PRINT 'Skript     :   ' + @Skript
+PRINT 'Ende       :   ' + @Ende
+PRINT 'Zeit       :   ' + @Zeit
+SELECT @Skript AS Skript, @Ende AS Ende, @Zeit AS Zeit
+GO
+
 
 /*
 

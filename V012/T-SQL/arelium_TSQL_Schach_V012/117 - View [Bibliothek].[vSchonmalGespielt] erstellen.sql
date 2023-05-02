@@ -69,7 +69,7 @@ AS (
 					STRING_AGG([Vollzug], ' ') + '%'
 				FROM
 				(
-					SELECT TOP 1
+					SELECT TOP 100  PERCENT
 						  [WEISS].[VollzugID]
 						, [WEISS].[KurzeNotationEinfach]
 						, CONVERT(VARCHAR(3), [WEISS].[VollzugID]) + '.' + [WEISS].[KurzeNotationEinfach]
@@ -77,18 +77,23 @@ AS (
 					FROM [Spiel].[Notation] AS [WEISS]
 					LEFT JOIN [Spiel].[Notation] AS [SCHWARZ]
 						ON [WEISS].[VollzugID]				= [SCHWARZ].[VollzugID]
-						AND [WEISS].[IstSpielerWeiss]		= 'TRUE'
 						AND [SCHWARZ].[IstSpielerWeiss]		= 'FALSE'
+					WHERE 1 = 1
+						AND [WEISS].[IstSpielerWeiss]		= 'TRUE'
 					ORDER BY [WEISS].[VollzugID] ASC
 				) AS [Vorlage]
 			)
-	ORDER BY [PartiemetadatenID]
+	ORDER BY NEWID()--[PartiemetadatenID]
 	)
 
 	SELECT 1 AS [ID],	CASE (SELECT COUNT([PartiemetadatenID]) FROM [CTEBucheintrag])
 							WHEN 1 THEN
 								(SELECT 'Partie [' + CONVERT(VARCHAR(8), [PartiemetadatenID]) + '] wurde schon gespielt im Jahr ' + ISNULL(LEFT([Veranstaltungsdatum], 4), '????') FROM [CTEBucheintrag])
-							ELSE 'diese Zugfolge steht nicht in der Bibliothek'
+							ELSE 
+								CASE
+									WHEN (SELECT COUNT(*) FROM [Spiel].[Notation]) > 0 THEN 'diese Zugfolge steht nicht in der Bibliothek'
+									ELSE 'Startaufstellung'
+								END
 						END AS [Wert] 
 	UNION
 	SELECT 2, ' von ' + [Weiss] + ' (Weiss' + ISNULL(CONVERT(VARCHAR(6), [EloWertWeiss]), '') +  ')' FROM [CTEBucheintrag] 
@@ -109,28 +114,30 @@ AS (
 				)
 				WHEN 1 THEN 
 					(SELECT SUBSTRING([KurzeNotation]
-					, (
-							SELECT [Bibliothek].[fncCharIndexNG2](
-											' '
-											, [KurzeNotation]
-											, 2 * (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])	
-										) FROM [CTEBucheintrag]
-							)
-					, 
-						(
-							(SELECT [Bibliothek].[fncCharIndexNG2](
-											' '
-											, [KurzeNotation]
-											, 2 * (SELECT MAX([VollzugID]) + 2 FROM [Spiel].[Notation])	
-							) FROM [CTEBucheintrag])
-							-
-													(SELECT [Bibliothek].[fncCharIndexNG2](
-											' '
-											, [KurzeNotation]
-											, 2 * (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])	
-										) FROM [CTEBucheintrag])
-							)
-						) FROM [CTEBucheintrag])
+					, (--1.e4 c6 2.d4 d5 3.e5 Bf5 4.Nf3 e6 5.Be2 c5 6.O-O Nc6 7.Be3 cxd4
+							-- Start: 
+		SELECT [Bibliothek].[fncCharIndexNG2](
+						' '
+						, [KurzeNotation]
+						, 2 * (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])	- 1
+					) FROM [CTEBucheintrag]
+		)
+, 
+	(
+		(SELECT [Bibliothek].[fncCharIndexNG2](
+						' '
+						, [KurzeNotation]
+						, 4 + 2 * (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])	
+		) FROM [CTEBucheintrag])
+		-
+		(SELECT [Bibliothek].[fncCharIndexNG2](
+						' '
+						, [KurzeNotation]
+						, 2 * (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])	- 1
+					) FROM [CTEBucheintrag])
+		
+		)
+	) FROM [CTEBucheintrag])
 				ELSE
 					'nicht konfiguriert'
 				END
