@@ -97,7 +97,7 @@ BEGIN
 	IF @VollzugID <= (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])
 	BEGIN
 
-		-- Die Notation anpassen
+	--	-- Die Notation anpassen
 		DELETE FROM [Spiel].[Notation] WHERE [VollzugID] > @VollzugID
 		IF @IstSpielerWeiss = 'FALSE'
 		BEGIN
@@ -106,13 +106,14 @@ BEGIN
 
 		-- den Spielbrettverlauf anpassen
 		DELETE FROM [Spiel].[Spielbrettverlauf] WHERE [VollzugID] > @VollzugID
-		IF @IstSpielerWeiss = 'FALSE'
+		IF @IstSpielerWeiss = 'TRUE'
 		BEGIN
 			DELETE FROM [Spiel].[Spielbrettverlauf] WHERE [VollzugID] = @VollzugID AND [IstSpielerWeiss] = 'FALSE'
 		END
 
-		-- Das Spielbrett aktualisieren
+	--	-- Das Spielbrett aktualisieren
 		DELETE FROM [Infrastruktur].[Spielbrett]
+
 
 		INSERT INTO [Infrastruktur].[Spielbrett](
 			  [Spalte]
@@ -131,29 +132,11 @@ BEGIN
 		FROM [Spiel].[Spielbrettverlauf]
 		WHERE 1 = 1
 			AND [VollzugID] = (SELECT MAX([VollzugID]) FROM [Spiel].[Spielbrettverlauf])
-			AND [IstSpielerWeiss] = (@IstSpielerWeiss + 1) % 2
-
-		-- Das Spielbrett darstellen
-		SELECT * FROM [Infrastruktur].[vSpielbrett]
-
-
-		-- Die aus der neuen Stellung moeglichen Zugvarianten ermitteln
-		IF @IstSpielerWeiss = 'TRUE'
-		BEGIN
-			EXECUTE [Spiel].[prcAktionenFuerAktuelleStellungWegschreiben] @IstSpielerWeiss = 'FALSE', @IstStellungZuBewerten = 'TRUE', @AktuelleStellung = @BSpielbrett
-		END
-		ELSE
-		BEGIN
-			EXECUTE [Spiel].[prcAktionenFuerAktuelleStellungWegschreiben] @IstSpielerWeiss = 'TRUE', @IstStellungZuBewerten = 'TRUE', @AktuelleStellung = @BSpielbrett
-		END
-
-		-- evtl. den Schritt "moegliche Zuege ermitteln" auch an der Oberflaeche anzeigen
-		IF 1 = 1
-			AND (SELECT [ComputerSchritteAnzeigen]	FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
-			AND (SELECT [SpielstaerkeID]			FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) <> 1
-		BEGIN
-			PRINT 'moegliche Zuege ermitteln...'
-		END
+			AND [IstSpielerWeiss] = (SELECT MIN(CONVERT(TINYINT, [IstSpielerWeiss])) 
+									FROM [Spiel].[Spielbrettverlauf] 
+									WHERE [VollzugID] = 
+										(SELECT MAX([VollzugID]) 
+										FROM [Spiel].[Spielbrettverlauf]))
 	
 		-- Das aktuelle Brett einlesen
 		INSERT INTO @BSpielbrett
@@ -168,16 +151,37 @@ BEGIN
 			, [SB].[FigurUTF8]				AS [FigurUTF8]
 		FROM [Infrastruktur].[Spielbrett]	AS [SB]
 
-		-- Statistiken aktualisieren
-		IF (SELECT [ComputerSchritteAnzeigen] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
+	--	---- Die aus der neuen Stellung moeglichen Zugvarianten ermitteln
+		IF @IstSpielerWeiss = 'FALSE'
 		BEGIN
-			EXECUTE [Statistik].[prcStellungBewerten] @IstSpielerWeiss,	@BSpielbrett
+			EXECUTE [Spiel].[prcAktionenFuerAktuelleStellungWegschreiben] @IstSpielerWeiss = 'FALSE', @IstStellungZuBewerten = 'TRUE', @AktuelleStellung = @BSpielbrett
 		END
 		ELSE
 		BEGIN
-			UPDATE [Statistik].[Stellungsbewertung]
-			SET		[Weiss] = NULL, [Schwarz] = NULL
+			EXECUTE [Spiel].[prcAktionenFuerAktuelleStellungWegschreiben] @IstSpielerWeiss = 'TRUE', @IstStellungZuBewerten = 'TRUE', @AktuelleStellung = @BSpielbrett
 		END
+
+	----	 evtl. den Schritt "moegliche Zuege ermitteln" auch an der Oberflaeche anzeigen
+	--	IF 1 = 1
+	--		AND (SELECT [ComputerSchritteAnzeigen]	FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
+	--		AND (SELECT [SpielstaerkeID]			FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) <> 1
+	--	BEGIN
+	--		PRINT 'moegliche Zuege ermitteln...'
+	--	END
+
+	----	-- Statistiken aktualisieren
+	--	IF (SELECT [ComputerSchritteAnzeigen] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
+	--	BEGIN
+	--		EXECUTE [Statistik].[prcStellungBewerten] @IstSpielerWeiss,	@BSpielbrett
+	--	END
+	--	ELSE
+	--	BEGIN
+	--		UPDATE [Statistik].[Stellungsbewertung]
+	--		SET		[Weiss] = NULL, [Schwarz] = NULL
+	--	END
+
+		-- Das Spielbrett darstellen
+		SELECT * FROM [Infrastruktur].[vSpielbrett]
 
 	END
 END

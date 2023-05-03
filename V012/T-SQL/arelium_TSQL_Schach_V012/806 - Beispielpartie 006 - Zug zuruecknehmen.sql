@@ -102,3 +102,5 @@ GO
 
 EXECUTE [Spiel].[prcZurueckZuZug] 3, 'FALSE'
 GO	
+EXECUTE [Spiel].[prcZugAusfuehren] 'd7', 'd6', NULL, 'FALSE', 'FALSE'
+GO	
