@@ -103,14 +103,14 @@ BEGIN
 		BEGIN
 			DELETE FROM [Spiel].[Notation] WHERE [VollzugID] = @VollzugID AND [IstSpielerWeiss] = 'FALSE'
 		END
-	
+
 		-- den Spielbrettverlauf anpassen
 		DELETE FROM [Spiel].[Spielbrettverlauf] WHERE [VollzugID] > @VollzugID
 		IF @IstSpielerWeiss = 'FALSE'
 		BEGIN
 			DELETE FROM [Spiel].[Spielbrettverlauf] WHERE [VollzugID] = @VollzugID AND [IstSpielerWeiss] = 'FALSE'
 		END
-	
+
 		-- Das Spielbrett aktualisieren
 		DELETE FROM [Infrastruktur].[Spielbrett]
 
@@ -207,7 +207,16 @@ GO
 USE [arelium_TSQL_Schach_V012]
 GO
 
-EXEC [Spiel].[prcRemisangebotAnnehmen]
+DECLARE @VollzugID bigint
+DECLARE @IstSpielerWeiss bit
+
+SET @VollzugID			= 1
+SET @IstSpielerWeiss	= 'FALSE'
+
+EXECUTE [Spiel].[prcZurueckZuZug] 
+   @VollzugID
+  ,@IstSpielerWeiss
 GO
+
 
 */

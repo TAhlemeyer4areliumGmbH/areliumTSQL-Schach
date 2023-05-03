@@ -96,7 +96,9 @@ EXECUTE [Spiel].[prcZugAusfuehren] 'b7', 'b6', NULL, 'FALSE', 'FALSE'
 GO	
 
 -- Vollzug 004
-EXECUTE [Spiel].[prcZugAusfuehren] 'c2', 'c4', NULL, 'FALSE', 'TRUE'			-- hier merkt WEISS, dass er eigentlich
+EXECUTE [Spiel].[prcZugAusfuehren] 'c1', 'e3', NULL, 'FALSE', 'TRUE'			-- hier merkt WEISS, dass er eigentlich
 																				-- e2-e4 spielen wollte!
+GO
 
+EXECUTE [Spiel].[prcZurueckZuZug] 3, 'FALSE'
 GO	

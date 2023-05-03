@@ -76,6 +76,9 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 
+	-- den Spielbrettverlauf saeubern
+	TRUNCATE TABLE [Spiel].[Spielbrettverlauf]
+
 	-- Spielbrett aufbauen
 	EXECUTE [Infrastruktur].[prcGrundstellungAufbauen] 
 	-- oder:
