@@ -95,26 +95,26 @@ AS
 BEGIN
 	TRUNCATE TABLE [Spiel].[MoeglicheAktionen]
 
-	--INSERT INTO [Spiel].[MoeglicheAktionen]
- --          ([TheoretischeAktionenID]
- --          ,[HalbzugNr]
- --          ,[FigurName]
- --          ,[IstSpielerWeiss]
- --          ,[StartSpalte]
- --          ,[StartReihe]
- --          ,[StartFeld]
- --          ,[ZielSpalte]
- --          ,[ZielReihe]
- --          ,[ZielFeld]
- --          ,[Richtung]
- --          ,[UmwandlungsfigurBuchstabe]
- --          ,[ZugIstSchlag]
- --          ,[ZugIstKurzeRochade]
- --          ,[ZugIstLangeRochade]
- --          ,[ZugIstEnPassant]
- --          ,[LangeNotation]
- --          ,[KurzeNotationEinfach]
- --          ,[KurzeNotationKomplex])
+	INSERT INTO [Spiel].[MoeglicheAktionen]
+           ([TheoretischeAktionenID]
+           ,[HalbzugNr]
+           ,[FigurName]
+           ,[IstSpielerWeiss]
+           ,[StartSpalte]
+           ,[StartReihe]
+           ,[StartFeld]
+           ,[ZielSpalte]
+           ,[ZielReihe]
+           ,[ZielFeld]
+           ,[Richtung]
+           ,[UmwandlungsfigurBuchstabe]
+           ,[ZugIstSchlag]
+           ,[ZugIstKurzeRochade]
+           ,[ZugIstLangeRochade]
+           ,[ZugIstEnPassant]
+           ,[LangeNotation]
+           ,[KurzeNotationEinfach]
+           ,[KurzeNotationKomplex])
 	SELECT 
 		  [TheoretischeAktionenID]
 		, [HalbzugNr]
@@ -137,124 +137,124 @@ BEGIN
 		, [KurzeNotationKomplex]
 	FROM [Spiel].[fncMoeglicheAktionen] (@IstSpielerWeiss, @AktuelleStellung)
 
-	------ --------------------------------------------------------------------------
-	------ Schachgebot
-	------ --------------------------------------------------------------------------
-	---- wurde im letzten Zug "Schach" geboten, sind alle oben ermittelten Zugalternativen auszuschliessen, 
-	---- die nicht dazu fuehren, dass das Schachgebot unterbrochen wird.
+	---- --------------------------------------------------------------------------
+	---- Schachgebot
+	---- --------------------------------------------------------------------------
+	-- wurde im letzten Zug "Schach" geboten, sind alle oben ermittelten Zugalternativen auszuschliessen, 
+	-- die nicht dazu fuehren, dass das Schachgebot unterbrochen wird.
 
-	--IF (
-	--		SELECT ISNULL([ZugIstSchachgebot], 'FALSE')
-	--		FROM [Spiel].[Notation] 
-	--		WHERE 1 = 1
-	--			AND [IstSpielerWeiss] = (@IstSpielerWeiss + 1) % 2 
-	--			AND [VollzugID] = 
-	--				(
-	--					SELECT MAX([VollzugID]) 
-	--					FROM [Spiel].[Notation] 
-	--					WHERE 1 = 1
-	--						AND [IstSpielerWeiss] = (@IstSpielerWeiss + 1) % 2 
-	--				)
-	--	) = 'TRUE'
-	--BEGIN
-	--	DECLARE @SchachgebotID					AS BIGINT
-	--	DECLARE @Analysestellung				AS [dbo].[typStellung]
-	--	DECLARE @AnalysestellungZukuenftig		AS [dbo].[typStellung]
+	IF (
+			SELECT ISNULL([ZugIstSchachgebot], 'FALSE')
+			FROM [Spiel].[Notation] 
+			WHERE 1 = 1
+				AND [IstSpielerWeiss] = (@IstSpielerWeiss + 1) % 2 
+				AND [VollzugID] = 
+					(
+						SELECT MAX([VollzugID]) 
+						FROM [Spiel].[Notation] 
+						WHERE 1 = 1
+							AND [IstSpielerWeiss] = (@IstSpielerWeiss + 1) % 2 
+					)
+		) = 'TRUE'
+	BEGIN
+		DECLARE @SchachgebotID					AS BIGINT
+		DECLARE @Analysestellung				AS [dbo].[typStellung]
+		DECLARE @AnalysestellungZukuenftig		AS [dbo].[typStellung]
 		
-	--	DECLARE curSchachgebote CURSOR FOR   
-	--		SELECT DISTINCT [TheoretischeAktionenID]
-	--		FROM [Spiel].[MoeglicheAktionen]
-	--		ORDER BY [TheoretischeAktionenID];  
+		DECLARE curSchachgebote CURSOR FOR   
+			SELECT DISTINCT [TheoretischeAktionenID]
+			FROM [Spiel].[MoeglicheAktionen]
+			ORDER BY [TheoretischeAktionenID];  
 
-	--	OPEN curSchachgebote
+		OPEN curSchachgebote
   
-	--	FETCH NEXT FROM curSchachgebote INTO @SchachgebotID
-	--	WHILE @@FETCH_STATUS = 0  
-	--	BEGIN 
+		FETCH NEXT FROM curSchachgebote INTO @SchachgebotID
+		WHILE @@FETCH_STATUS = 0  
+		BEGIN 
 				
-	--		DELETE FROM @Analysestellung
-	--		DELETE FROM @AnalysestellungZukuenftig
+			DELETE FROM @Analysestellung
+			DELETE FROM @AnalysestellungZukuenftig
 
-	--		INSERT INTO @Analysestellung
-	--			SELECT 
-	--				  1								AS [VarianteNr]
-	--				, 1								AS [Suchtiefe]
-	--				, [SB].[Spalte]					AS [Spalte]
-	--				, [SB].[Reihe]					AS [Reihe]
-	--				, [SB].[Feld]					AS [Feld]
-	--				, [SB].[IstSpielerWeiss]		AS [IstSpielerWeiss]
-	--				, [FigurBuchstabe]				AS [FigurBuchstabe]
-	--				, [SB].[FigurUTF8]				AS [FigurUTF8]
-	--			FROM [Infrastruktur].[Spielbrett]	AS [SB]
+			INSERT INTO @Analysestellung
+				SELECT 
+					  1								AS [VarianteNr]
+					, 1								AS [Suchtiefe]
+					, [SB].[Spalte]					AS [Spalte]
+					, [SB].[Reihe]					AS [Reihe]
+					, [SB].[Feld]					AS [Feld]
+					, [SB].[IstSpielerWeiss]		AS [IstSpielerWeiss]
+					, [FigurBuchstabe]				AS [FigurBuchstabe]
+					, [SB].[FigurUTF8]				AS [FigurUTF8]
+				FROM [Infrastruktur].[Spielbrett]	AS [SB]
 			
-	--		-- der Zug wird simuliert
-	--		INSERT INTO @AnalysestellungZukuenftig 
-	--			([VarianteNr], [Suchtiefe], [Spalte], [Reihe], [Feld], [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])  
-	--													EXEC [Spiel].[prcZugAnalysieren] @Analysestellung, @SchachgebotID
+			-- der Zug wird simuliert
+			INSERT INTO @AnalysestellungZukuenftig 
+				([VarianteNr], [Suchtiefe], [Spalte], [Reihe], [Feld], [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])  
+														EXEC [Spiel].[prcZugAnalysieren] @Analysestellung, @SchachgebotID
 
-	--		IF (SELECT [Infrastruktur].[fncStellungIstSchach] (@AnalysestellungZukuenftig, ((@IstSpielerWeiss + 1) % 2))) = 'TRUE'
-	--		BEGIN
-	--			DELETE FROM [Spiel].[MoeglicheAktionen] WHERE [TheoretischeAktionenID] = @SchachgebotID
-	--		END
+			IF (SELECT [Infrastruktur].[fncStellungIstSchach] (@AnalysestellungZukuenftig, ((@IstSpielerWeiss + 1) % 2))) = 'TRUE'
+			BEGIN
+				DELETE FROM [Spiel].[MoeglicheAktionen] WHERE [TheoretischeAktionenID] = @SchachgebotID
+			END
 
-	--		FETCH NEXT FROM curSchachgebote INTO @SchachgebotID 
-	--	END
+			FETCH NEXT FROM curSchachgebote INTO @SchachgebotID 
+		END
 		
-	--	CLOSE curSchachgebote;  
-	--	DEALLOCATE curSchachgebote; 
+		CLOSE curSchachgebote;  
+		DEALLOCATE curSchachgebote; 
 
 		-- bleiben nun keine Aktionsmoeglichkeiten mehr ueber (es besteht aber ein Schachgebot),
 		-- so handelt es sich um MATT!
-		--IF (SELECT COUNT(*) FROM [Spiel].[MoeglicheAktionen]) = 0
-		--BEGIN
-		--	UPDATE [Spiel].[Notation]
-		--	SET [LangeNotation] = LEFT([LangeNotation], LEN([LangeNotation]) - 1) + '#'
-		--	WHERE 1 = 1
-		--		AND [VollzugID]			= (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])
-		--		AND [IstSpielerWeiss]	= ((@IstSpielerWeiss + 1) % 2)
+		IF (SELECT COUNT(*) FROM [Spiel].[MoeglicheAktionen]) = 0
+		BEGIN
+			UPDATE [Spiel].[Notation]
+			SET [LangeNotation] = LEFT([LangeNotation], LEN([LangeNotation]) - 1) + '#'
+			WHERE 1 = 1
+				AND [VollzugID]			= (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])
+				AND [IstSpielerWeiss]	= ((@IstSpielerWeiss + 1) % 2)
 
-		--	INSERT INTO [Spiel].[Notation]
-		--	   (	  [VollzugID], [IstSpielerWeiss], [TheoretischeAktionenID], [LangeNotation]
-		--			, [KurzeNotationEinfach], [KurzeNotationKomplex], [ZugIstSchachgebot])
-		--	VALUES
-		--	   ((SELECT MAX([VollzugID]) + 1 FROM [Spiel].[Notation])
-		--	   , 'TRUE'
-		--	   , (SELECT MIN([TheoretischeAktionenID]) FROM [Infrastruktur].[TheoretischeAktionen])
-		--	   , CASE @IstSpielerWeiss WHEN 'FALSE' THEN '1-0' ELSE '0-1' END
-		--	   , CASE @IstSpielerWeiss WHEN 'FALSE' THEN '1-0' ELSE '0-1' END
-		--	   , CASE @IstSpielerWeiss WHEN 'FALSE' THEN '1-0' ELSE '0-1' END
-		--	   , 'TRUE')
-		--END
+			INSERT INTO [Spiel].[Notation]
+			   (	  [VollzugID], [IstSpielerWeiss], [TheoretischeAktionenID], [LangeNotation]
+					, [KurzeNotationEinfach], [KurzeNotationKomplex], [ZugIstSchachgebot])
+			VALUES
+			   ((SELECT MAX([VollzugID]) + 1 FROM [Spiel].[Notation])
+			   , 'TRUE'
+			   , (SELECT MIN([TheoretischeAktionenID]) FROM [Infrastruktur].[TheoretischeAktionen])
+			   , CASE @IstSpielerWeiss WHEN 'FALSE' THEN '1-0' ELSE '0-1' END
+			   , CASE @IstSpielerWeiss WHEN 'FALSE' THEN '1-0' ELSE '0-1' END
+			   , CASE @IstSpielerWeiss WHEN 'FALSE' THEN '1-0' ELSE '0-1' END
+			   , 'TRUE')
+		END
 
-	--END
+	END
 
 
 	
 
 
 
-	--IF @IstStellungZuBewerten = 'TRUE'
-	--BEGIN
-	--	DECLARE @TheoretischeAktionenID AS BIGINT
-	--	DECLARE curMoeglicheAktionen CURSOR FOR   
-	--		SELECT [MA].[TheoretischeAktionenID]
-	--		FROM [Spiel].[MoeglicheAktionen] AS [MA]
+	IF @IstStellungZuBewerten = 'TRUE'
+	BEGIN
+		DECLARE @TheoretischeAktionenID AS BIGINT
+		DECLARE curMoeglicheAktionen CURSOR FOR   
+			SELECT [MA].[TheoretischeAktionenID]
+			FROM [Spiel].[MoeglicheAktionen] AS [MA]
 
-	--	OPEN curMoeglicheAktionen
+		OPEN curMoeglicheAktionen
   
-	--	FETCH NEXT FROM curMoeglicheAktionen INTO @TheoretischeAktionenID
-	--	WHILE @@FETCH_STATUS = 0  
-	--	BEGIN 
+		FETCH NEXT FROM curMoeglicheAktionen INTO @TheoretischeAktionenID
+		WHILE @@FETCH_STATUS = 0  
+		BEGIN 
 
-	--		UPDATE [Spiel].[MoeglicheAktionen]
-	--		SET [Bewertung] = 2
-	--		WHERE [TheoretischeAktionenID] = @TheoretischeAktionenID
+			UPDATE [Spiel].[MoeglicheAktionen]
+			SET [Bewertung] = 2
+			WHERE [TheoretischeAktionenID] = @TheoretischeAktionenID
 
-	--		FETCH NEXT FROM curMoeglicheAktionen INTO @TheoretischeAktionenID 
-	--	END
-	--	CLOSE curMoeglicheAktionen;  
-	--	DEALLOCATE curMoeglicheAktionen; 
-	--END
+			FETCH NEXT FROM curMoeglicheAktionen INTO @TheoretischeAktionenID 
+		END
+		CLOSE curMoeglicheAktionen;  
+		DEALLOCATE curMoeglicheAktionen; 
+	END
 	
 END 
 GO
