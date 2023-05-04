@@ -1,7 +1,7 @@
 -- ###########################################################################################
 -- ### Spiel der Koenige - Workshopversion ###################################################
 -- ###########################################################################################
--- ### Erstellung der Prozedur [Spiel].[prcZugAusfuehren]                                  ###
+-- ### Erstellung der Prozedur [Spiel].[prcZugAusfuehrenUndReagieren]                      ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Dieses Skript erstellt oder aendert eine Prozedur, die dazu dient einen Zug         ###
 -- ### auszufuehren. Dazu uebergibt der Spieler zwei Koordinaten (Start- und Zielfeld).    ###
@@ -70,9 +70,9 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 -- -----------------------------------------------------------------------------------------
--- Erstellung der Prozedur [Spiel].[prcZugAusfuehren]
+-- Erstellung der Prozedur [Spiel].[prcZugAusfuehrenUndReagieren]
 -- -----------------------------------------------------------------------------------------
-CREATE OR ALTER PROCEDURE [Spiel].[prcZugAusfuehren] 
+CREATE OR ALTER PROCEDURE [Spiel].[prcZugAusfuehrenUndReagieren] 
 	(
 		  @Startquadrat				AS CHAR(2)
 		, @Zielquadrat				AS CHAR(2)
@@ -82,6 +82,7 @@ CREATE OR ALTER PROCEDURE [Spiel].[prcZugAusfuehren]
 	)
 AS
 BEGIN
+
 	DECLARE @Startfeld				AS INTEGER
 	DECLARE @Zielfeld				AS INTEGER
 	DECLARE @FigurBuchstabe			AS CHAR(1)
@@ -253,261 +254,82 @@ BEGIN
 											ELSE
 											BEGIN
 
-												-- hier wird der Wunschzug durchgefuehrt und das Ergebnis in die Tabelle mit dem aktuellen Spielbrett
-												-- geschrieben. Im Falle einer Bauernumwandlung, eines "en passant" oder einer 
-												-- Rochade sind evtl. mehr als nur eine Figur betroffen
-												TRUNCATE TABLE [Infrastruktur].[Spielbrett]
-												INSERT INTO [Infrastruktur].[Spielbrett]
-													([Spalte], [Reihe], [Feld], [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])  
-												EXEC [Spiel].[prcZugSimulieren] @ASpielbrett, @WunschzugID
+												EXECUTE [Spiel].[prcZugAusfuehren] 
+													  @Startquadrat				= @Startquadrat
+													, @Zielquadrat				= @Zielquadrat
+													, @Umwandlungsfigur			= @Umwandlungsfigur
+													, @IstEnPassant				= @IstEnPassant
+													, @IstSpielerWeiss			= @IstSpielerWeiss
 
-												-- Die Zeitmessung fuer den gerade aktiven Spieler aktualisieren
-												UPDATE [Spiel].[Konfiguration]
-												SET	  [RestzeitInSekunden]	= [RestzeitInSekunden] - ABS(DATEDIFF(SECOND, [ZeitpunktLetzterZug], GETDATE()))
-													, [ZeitpunktLetzterZug] = GETDATE()
-												WHERE [IstSpielerWeiss]		= @IstSpielerWeiss
+												---- -----------------------------------------------------------------
+												---- Gegenzug der Computerengine, falls hier Mensch gegen TSQL spielt
+												---- -----------------------------------------------------------------
 
-												-- evtl. den Schritt "Die Zeitmessung fuer den gerade aktiven Spieler aktualisieren" auch an der Oberflaeche anzeigen
-												IF 1 = 1
-													AND (SELECT [ComputerSchritteAnzeigen]	FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
-													AND (SELECT [SpielstaerkeID]			FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) <> 1
+												IF (SELECT [SpielstaerkeID] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = ((@IstSpielerWeiss + 1) % 2)) BETWEEN 1 AND 2
+													AND (SELECT [SpielstaerkeID] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) NOT BETWEEN 1 AND 2
 												BEGIN
-													PRINT 'Die Zeitmessung fuer den gerade aktiven Spieler aktualisieren...'
-												END
+													DECLARE @Computerzug						AS [dbo].[typMoeglicheAktionen] 
+													DECLARE @StartquadratComputerzug			AS CHAR(2)
+													DECLARE @ZielquadratComputerzug				AS CHAR(2)
+													DECLARE @UmwandlungsfigurComputerzug		AS CHAR(1)
+													DECLARE @IstEnPassantComputerzug			AS BIT
+													DECLARE @IstSpielerWeissComputer			AS BIT
 
-												-- Das aktuelle Brett einlesen
-												INSERT INTO @BSpielbrett
-												SELECT 
-													  1								AS [VarianteNr]
-													, 1								AS [Suchtiefe]
-													, [SB].[Spalte]					AS [Spalte]
-													, [SB].[Reihe]					AS [Reihe]
-													, [SB].[Feld]					AS [Feld]
-													, [SB].[IstSpielerWeiss]		AS [IstSpielerWeiss]
-													, [SB].[FigurBuchstabe]			AS [FigurBuchstabe]
-													, [SB].[FigurUTF8]				AS [FigurUTF8]
-												FROM [Infrastruktur].[Spielbrett]	AS [SB]
-											
-												---- Den Zug notieren
-												SET @VollzugId			= (SELECT ISNULL(MAX([VollzugID]), 0) + @IstSpielerWeiss FROM [Spiel].[Notation])
-												SET @IstStellungSchach	= (SELECT [Spiel].[fncIstFeldBedroht]
-																				(
-																					  @IstSpielerWeiss
-																					, @BSpielbrett
-																					, (SELECT [Feld] FROM @BSpielbrett WHERE [FigurBuchstabe] = 'K' AND [IstSpielerWeiss] = ((@IstSpielerWeiss + 1) % 2))
-																				)
-																			)
-										
-												INSERT INTO [Spiel].[Notation]
-														   ([VollzugID]
-														   ,[IstSpielerWeiss]
-														   ,[TheoretischeAktionenID]
-														   ,[LangeNotation]
-														   ,[KurzeNotationEinfach]
-														   ,[KurzeNotationKomplex]
-														   ,[ZugIstSchachgebot])
-												SELECT
-													  @VollzugId									AS [VollzugId]
-													, @IstSpielerWeiss								AS [IstSpielerWeiss]
-													, [TheoretischeAktionenID]						AS [TheoretischeAktionenID]
-													, CASE @IstStellungSchach 
-														WHEN 'TRUE' THEN [LangeNotation] + '+'
-														ELSE [LangeNotation] 
-													END												AS [LangeNotation]
-													, CASE @IstStellungSchach 
-														WHEN 'TRUE' THEN [KurzeNotationEinfach] + '+'
-														ELSE [KurzeNotationEinfach] 
-													END												AS [KurzeNotationEinfach]
-													, CASE @IstStellungSchach 
-														WHEN 'TRUE' THEN [KurzeNotationKomplex] + '+'
-														ELSE [KurzeNotationKomplex] 
-													END												AS [KurzeNotationKomplex]
-													, @IstStellungSchach							AS [ZugIstSchachgebot]
-												FROM [Infrastruktur].[TheoretischeAktionen]
-												WHERE [TheoretischeAktionenID] = @WunschzugID
-
-												-- evtl. den Schritt "den Zug nortieren" auch an der Oberflaeche anzeigen
-												IF 1 = 1
-													AND (SELECT [ComputerSchritteAnzeigen]	FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
-													AND (SELECT [SpielstaerkeID]			FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) <> 1
-												BEGIN
-													PRINT 'den Zug notieren...'
-												END
-
-											
-												-- den Zug archivieren
-												INSERT INTO [Spiel].[Zugverfolgung]
-												(	 [ID], [Vollzug], [Halbzug], [Spalte], [Reihe], [Feld]
-													, [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])
-												SELECT
-													  (SELECT ISNULL(MAX([ID]) + 1, 1) FROM [Spiel].[Zugverfolgung])				AS [ID]
-													, (SELECT ISNULL(MAX([Halbzug]) + 1, 1) / 2 + 1 FROM [Spiel].[Zugverfolgung])	AS [Vollzug]
-													, (SELECT ISNULL(MAX([Halbzug]) + 1, 1) FROM [Spiel].[Zugverfolgung])			AS [Halbzug]
-													, [Spalte]																		AS [Spalte]
-													, [Reihe]																		AS [Reihe]
-													, [Feld]																		AS [Feld]
-													, [IstSpielerWeiss]																AS [IstSpielerWeiss]
-													, [FigurBuchstabe]																AS [FigurBuchstabe]
-													, [FigurUTF8]																	AS [FigurUTF8]
-												FROM [Infrastruktur].[Spielbrett]
-
-												-- evtl. den Schritt "den Zug archivieren" auch an der Oberflaeche anzeigen
-												IF 1 = 1
-													AND (SELECT [ComputerSchritteAnzeigen]	FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
-													AND (SELECT [SpielstaerkeID]			FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) <> 1
-												BEGIN
-													PRINT 'den Zug archivieren...'
-												END
-											
-												-- evtl. zukuenftige Rochaden dauerhaft sperren
-												IF (SELECT [IstKurzeRochadeErlaubt] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
-												BEGIN
-													IF @IstSpielerWeiss = 'TRUE'
+													-- nun reagiert der Rechner als Gegenspieler
+													IF (SELECT [SpielstaerkeID] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) BETWEEN 3 AND 4				-- zufaelliger Zug
 													BEGIN
-														IF (@Startquadrat = 'a1') or (@Startquadrat = 'e1')
-														BEGIN
-															UPDATE [Spiel].[Konfiguration]
-															SET [IstLangeRochadeErlaubt]	= 'FALSE'
-															WHERE [IstSpielerWeiss]			= @IstSpielerWeiss
-														END
-														IF (@Startquadrat = 'h1') or (@Startquadrat = 'e1')
-														BEGIN
-															UPDATE [Spiel].[Konfiguration]
-															SET [IstKurzeRochadeErlaubt]	= 'FALSE'
-															WHERE [IstSpielerWeiss]			= @IstSpielerWeiss
-														END
-														IF (@Zielquadrat = 'a8')
-														BEGIN
-															UPDATE [Spiel].[Konfiguration]
-															SET [IstLangeRochadeErlaubt]	= 'FALSE'
-															WHERE [IstSpielerWeiss]			= ((@IstSpielerWeiss + 1) % 2)
-														END
-														IF (@Zielquadrat = 'h8')
-														BEGIN
-															UPDATE [Spiel].[Konfiguration]
-															SET [IstKurzeRochadeErlaubt]	= 'FALSE'
-															WHERE [IstSpielerWeiss]			= ((@IstSpielerWeiss + 1) % 2)
-														END
+		
+														INSERT INTO @Computerzug
+															([TheoretischeAktionenID], [HalbzugNr], [FigurName], [IstSpielerWeiss], [StartSpalte], [StartReihe]
+															,[StartFeld], [ZielSpalte], [ZielReihe], [ZielFeld], [Richtung], [UmwandlungsfigurBuchstabe]
+															,[ZugIstSchlag], [ZugIstKurzeRochade], [ZugIstLangeRochade], [ZugIstEnPassant], [LangeNotation]
+															,[KurzeNotationEinfach], [KurzeNotationKomplex], [Bewertung])
+														SELECT TOP 1
+															  [TheoretischeAktionenID]
+															, [HalbzugNr]
+															, [FigurName]
+															, [IstSpielerWeiss]
+															, [StartSpalte]
+															, [StartReihe]
+															, [StartFeld]
+															, [ZielSpalte]
+															, [ZielReihe]
+															, [ZielFeld]
+															, [Richtung]
+															, [UmwandlungsfigurBuchstabe]
+															, [ZugIstSchlag]
+															, [ZugIstKurzeRochade]
+															, [ZugIstLangeRochade]
+															, [ZugIstEnPassant]
+															, [LangeNotation]
+															, [KurzeNotationEinfach]
+															, [KurzeNotationKomplex]
+															, [Bewertung]
+														FROM [arelium_TSQL_Schach_V012].[Spiel].[MoeglicheAktionen]
+														ORDER BY NEWID()
+
+														-- diesen Zug jetzt ausfuehren
+														SET @StartquadratComputerzug		= (SELECT TOP 1 [StartSpalte] + CONVERT(CHAR(1), [StartReihe]) FROM @Computerzug)
+														SET @ZielquadratComputerzug			= (SELECT TOP 1 [ZielSpalte] + CONVERT(CHAR(1), [ZielReihe]) FROM @Computerzug)
+														SET @UmwandlungsfigurComputerzug	= (SELECT TOP 1 [UmwandlungsfigurBuchstabe] FROM @Computerzug)
+														SET @IstEnPassantComputerzug		= (SELECT TOP 1 [ZugIstEnPassant] FROM @Computerzug)
+														SET @IstSpielerWeissComputer		= (SELECT ((@IstSpielerWeiss + 1) % 2))
+
+														EXECUTE [Spiel].[prcZugAusfuehren] 
+															  @StartquadratComputerzug
+															, @ZielquadratComputerzug
+															, @UmwandlungsfigurComputerzug
+															, @IstEnPassantComputerzug
+															, @IstSpielerWeissComputer
+
+														SELECT 'Weitere Zuege gegen den Computergegner bitte mit EXEC [Spiel].[prcZugausfuehrenUndReagieren] beginnen'
+
 													END
 													ELSE
 													BEGIN
-														IF (@Startquadrat = 'a8') or (@Startquadrat = 'e8')
-														BEGIN
-															UPDATE [Spiel].[Konfiguration]
-															SET [IstLangeRochadeErlaubt]	= 'FALSE'
-															WHERE [IstSpielerWeiss]			= @IstSpielerWeiss
-														END
-														IF (@Startquadrat = 'h8') or (@Startquadrat = 'e8')
-														BEGIN
-															UPDATE [Spiel].[Konfiguration]
-															SET [IstKurzeRochadeErlaubt]	= 'FALSE'
-															WHERE [IstSpielerWeiss]			= @IstSpielerWeiss
-														END
-														IF (@Zielquadrat = 'a1')
-														BEGIN
-															UPDATE [Spiel].[Konfiguration]
-															SET [IstLangeRochadeErlaubt]	= 'FALSE'
-															WHERE [IstSpielerWeiss]			= ((@IstSpielerWeiss + 1) % 2)
-														END
-														IF (@Zielquadrat = 'h1')
-														BEGIN
-															UPDATE [Spiel].[Konfiguration]
-															SET [IstKurzeRochadeErlaubt]	= 'FALSE'
-															WHERE [IstSpielerWeiss]			= ((@IstSpielerWeiss + 1) % 2)
-														END
+														SELECT 'noch nicht implementiert'
 													END
 												END
-
-												-- moegliche Zuege ermitteln
-												IF @IstSpielerWeiss = 'TRUE'
-												BEGIN
-													EXECUTE [Spiel].[prcAktionenFuerAktuelleStellungWegschreiben] @IstSpielerWeiss = 'FALSE', @IstStellungZuBewerten = 'TRUE', @AktuelleStellung = @BSpielbrett
-												END
-												ELSE
-												BEGIN
-													EXECUTE [Spiel].[prcAktionenFuerAktuelleStellungWegschreiben] @IstSpielerWeiss = 'TRUE', @IstStellungZuBewerten = 'TRUE', @AktuelleStellung = @BSpielbrett
-												END
-
-												-- evtl. den Schritt "moegliche Zuege ermitteln" auch an der Oberflaeche anzeigen
-												IF 1 = 1
-													AND (SELECT [ComputerSchritteAnzeigen]	FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
-													AND (SELECT [SpielstaerkeID]			FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) <> 1
-												BEGIN
-													PRINT 'moegliche Zuege ermitteln...'
-												END
-
-												-- Alle Bibliothekspartien aus der Tabelle [Bibliothek].[aktuelleNachschlageoptionen] werfen, die nicht mehr 
-												-- der aktuellen Stellung entsprechen
-												DELETE FROM [Bibliothek].[aktuelleNachschlageoptionen]
-												WHERE 1 = 1
-													AND [PartiemetadatenID] NOT IN
-														(
-															SELECT [PartiemetadatenID]
-															FROM [Bibliothek].[aktuelleNachschlageoptionen]
-															WHERE 1 = 1
-																AND [Zugnummer] = ISNULL((SELECT ISNULL(MAX([VollzugID]), 0) FROM [Spiel].[Notation]), 0)
-																AND	(	
-																		( [ZugWeiss] = 
-																					(	SELECT [KurzeNotationEinfach] 
-																						FROM [Spiel].[Notation] 
-																						WHERE 1 = 1
-																							AND [IstSpielerWeiss]	= @IstSpielerWeiss
-																							AND [VollzugID]			= ISNULL((SELECT ISNULL(MAX([VollzugID]), 0) FROM [Spiel].[Notation]), 0)
-																					)
-																			AND @IstSpielerWeiss	= 'TRUE'
-																		)
-																		OR 
-																		( [ZugSchwarz] = 
-																					(	SELECT [KurzeNotationEinfach] 
-																						FROM [Spiel].[Notation] 
-																						WHERE 1 = 1
-																							AND [IstSpielerWeiss]	= @IstSpielerWeiss 
-																							AND [VollzugID]			= ISNULL((SELECT ISNULL(MAX([VollzugID]), 0) FROM [Spiel].[Notation]), 0)
-																					)
-																			AND @IstSpielerWeiss	= 'FALSE'
-																		)
-																)
-														)
-
-
-												-- Statistiken aktualisieren
-												IF (SELECT [ComputerSchritteAnzeigen] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = @IstSpielerWeiss) = 'TRUE'
-												BEGIN
-													EXECUTE [Statistik].[prcStellungBewerten] @IstSpielerWeiss,	@BSpielbrett
-												END
-												ELSE
-												BEGIN
-													UPDATE [Statistik].[Stellungsbewertung]
-													SET		[Weiss] = NULL, [Schwarz] = NULL
-												END
-
-
-
-												-- das aktuelle Spielbrett in den Spielverlauf einfuegen
-												INSERT INTO [Spiel].[Spielbrettverlauf]
-														   ( [VollzugID]
-														   , [Spalte]
-														   , [Reihe]
-														   , [Feld]
-														   , [IstSpielerWeiss]
-														   , [FigurBuchstabe]
-														   , [FigurUTF8])
-												SELECT
-													  (SELECT MAX([VollzugID]) FROM [Spiel].[Notation])
-													, [Spalte]
-													, [Reihe]
-													, [Feld]
-													, (SELECT [Spiel].[fncIstWeissAmZug]())
-													, [FigurBuchstabe]
-													, [FigurUTF8]
-												  FROM [Infrastruktur].[Spielbrett]
-
-
-
-
-												-- Das Amaturenbrett inklusive Spielbrett wird neu gezeichnet
-												SELECT * FROM [Infrastruktur].[vSpielbrett]
-
 											END
 										END
 									END
@@ -536,7 +358,7 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @Ende		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Zeit		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Skript		VARCHAR(100)	= '512 - Prozedur [Spiel].[prcZugAusfuehren] erstellen.sql'
+DECLARE @Skript		VARCHAR(100)	= '513 - Prozedur [Spiel].[prcZugAusfuehren] erstellen.sql'
 PRINT ' '
 PRINT 'Skript     :   ' + @Skript
 PRINT 'Ende       :   ' + @Ende
@@ -555,7 +377,7 @@ DECLARE	@return_value int
 
 EXEC	[Spiel].[prcInitialisierung]
 
-EXEC	@return_value = [Spiel].[prcZugAusfuehren]
+EXEC	@return_value = [Spiel].[prcZugAusfuehrenUndReagieren]
 		@Startquadrat = N'g1',
 		@Zielquadrat = N'f3',
 		@Umwandlungsfigur = NULL,

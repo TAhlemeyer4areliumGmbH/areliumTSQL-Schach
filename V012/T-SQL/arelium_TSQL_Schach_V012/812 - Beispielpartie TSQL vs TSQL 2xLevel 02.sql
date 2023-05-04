@@ -53,15 +53,16 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-DECLARE @RC int
-DECLARE @NameWeiss nvarchar(30)
-DECLARE @NameSchwarz nvarchar(30)
-DECLARE @SpielstaerkeWeiss tinyint
-DECLARE @SpielstaerkeSchwarz tinyint
-DECLARE @RestzeitWeissInSekunden int
-DECLARE @RestzeitSchwarzInSekunden int
-DECLARE @ComputerSchritteAnzeigenWeiss bit
-DECLARE @ComputerSchritteAnzeigenSchwarz bit
+DECLARE @RC									INTEGER
+DECLARE @NameWeiss							NVARCHAR(30)
+DECLARE @NameSchwarz						NVARCHAR(30)
+DECLARE @SpielstaerkeWeiss					TINYINT
+DECLARE @SpielstaerkeSchwarz				TINYINT
+DECLARE @RestzeitWeissInSekunden			INTEGER
+DECLARE @RestzeitSchwarzInSekunden			INTEGER
+DECLARE @ComputerSchritteAnzeigenWeiss		BIT
+DECLARE @ComputerSchritteAnzeigenSchwarz	BIT
+DECLARE @GebrauchsanweisungAnzeigen			BIT
 
 SET @NameWeiss							= 'Computer1'
 SET @NameSchwarz						= 'Computer2'
@@ -71,17 +72,18 @@ SET @RestzeitWeissInSekunden			= 5700
 SET @RestzeitSchwarzInSekunden			= 5700
 SET @ComputerSchritteAnzeigenWeiss		= 1
 SET @ComputerSchritteAnzeigenSchwarz	= 1
-
+SET @GebrauchsanweisungAnzeigen			= 'FALSE'
 
 EXECUTE @RC = [Spiel].[prcTSQL_vs_TSQL] 
-   @NameWeiss
-  ,@NameSchwarz
-  ,@SpielstaerkeWeiss
-  ,@SpielstaerkeSchwarz
-  ,@RestzeitWeissInSekunden
-  ,@RestzeitSchwarzInSekunden
-  ,@ComputerSchritteAnzeigenWeiss
-  ,@ComputerSchritteAnzeigenSchwarz
+    @NameWeiss
+  , @NameSchwarz
+  , @SpielstaerkeWeiss
+  , @SpielstaerkeSchwarz
+  , @RestzeitWeissInSekunden
+  , @RestzeitSchwarzInSekunden
+  , @ComputerSchritteAnzeigenWeiss
+  , @ComputerSchritteAnzeigenSchwarz
+  , @GebrauchsanweisungAnzeigen
 GO
 
 -- WEISS zieht automatisch!

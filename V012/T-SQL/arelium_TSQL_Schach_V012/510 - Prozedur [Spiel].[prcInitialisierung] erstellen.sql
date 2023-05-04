@@ -72,6 +72,7 @@ CREATE OR ALTER PROCEDURE [Spiel].[prcInitialisierung]
 	, @RestzeitSchwarzInSekunden			AS INTEGER
 	, @ComputerSchritteAnzeigenWeiss		AS BIT
 	, @ComputerSchritteAnzeigenSchwarz		AS BIT
+	, @BedienungsanleitungAnzeigen			AS BIT
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -138,7 +139,10 @@ BEGIN
 	-- ------------------------------------------
 
 	-- Die Bedienungsanleitung wird ausgegeben, um menschliche Spieler zu unterstuetzen
-	SELECT [naechste Schritte] FROM [Infrastruktur].[vBedienungsanleitung] ORDER BY [ID] ASC
+	IF @BedienungsanleitungAnzeigen = 'TRUE'
+	BEGIN
+		SELECT [naechste Schritte] FROM [Infrastruktur].[vBedienungsanleitung] ORDER BY [ID] ASC
+	END
 
 	-- Die Statistiktabelle fuer die aktuelle Stellung aktualisieren
 	EXECUTE [Statistik].[prcStellungBewerten] 'TRUE',	@ASpielbrett

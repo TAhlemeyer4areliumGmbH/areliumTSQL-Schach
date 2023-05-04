@@ -90,6 +90,7 @@ CREATE OR ALTER PROCEDURE [Spiel].[prcMensch_vs_TSQL]
 		, @Zielquadrat							AS CHAR(2)
 		, @Umwandlungsfigur						AS CHAR(1)
 		, @IstEnPassant							AS BIT
+		, @GebrauchsanweisungAnzeigen			AS BIT
 	)
 AS
 BEGIN
@@ -104,6 +105,7 @@ BEGIN
 		, @RestzeitSchwarzInSekunden
 		, @ComputerSchritteAnzeigenWeiss
 		, @ComputerSchritteAnzeigenSchwarz
+		, @GebrauchsanweisungAnzeigen
 
 	-- Weiss macht den ersten Zug (dies ist der menschliche Spieler)
 	EXECUTE [Spiel].[prcZugAusfuehren] 
@@ -112,6 +114,66 @@ BEGIN
 		, @Umwandlungsfigur			= @Umwandlungsfigur
 		, @IstEnPassant				= @IstEnPassant
 		, @IstSpielerWeiss			= 'TRUE'
+
+		
+	-- nun reagiert der Rechner als Gegenspieler
+	DECLARE @Computerzug						AS [dbo].[typMoeglicheAktionen] 
+	DECLARE @StartquadratComputerzug			AS CHAR(2)
+	DECLARE @ZielquadratComputerzug				AS CHAR(2)
+	DECLARE @UmwandlungsfigurComputerzug		AS CHAR(1)
+	DECLARE @IstEnPassantComputerzug			AS BIT
+
+	IF (SELECT [SpielstaerkeID] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'TRUE') BETWEEN 3 AND 4				-- zufaelliger Zug
+	BEGIN
+		
+		INSERT INTO @Computerzug
+			([TheoretischeAktionenID], [HalbzugNr], [FigurName], [IstSpielerWeiss], [StartSpalte], [StartReihe]
+			,[StartFeld], [ZielSpalte], [ZielReihe], [ZielFeld], [Richtung], [UmwandlungsfigurBuchstabe]
+			,[ZugIstSchlag], [ZugIstKurzeRochade], [ZugIstLangeRochade], [ZugIstEnPassant], [LangeNotation]
+			,[KurzeNotationEinfach], [KurzeNotationKomplex], [Bewertung])
+		SELECT TOP 1
+			  [TheoretischeAktionenID]
+			, [HalbzugNr]
+			, [FigurName]
+			, [IstSpielerWeiss]
+			, [StartSpalte]
+			, [StartReihe]
+			, [StartFeld]
+			, [ZielSpalte]
+			, [ZielReihe]
+			, [ZielFeld]
+			, [Richtung]
+			, [UmwandlungsfigurBuchstabe]
+			, [ZugIstSchlag]
+			, [ZugIstKurzeRochade]
+			, [ZugIstLangeRochade]
+			, [ZugIstEnPassant]
+			, [LangeNotation]
+			, [KurzeNotationEinfach]
+			, [KurzeNotationKomplex]
+			, [Bewertung]
+		FROM [Spiel].[MoeglicheAktionen]
+		ORDER BY NEWID()
+
+		-- diesen Zug jetzt ausfuehren
+		SET @StartquadratComputerzug		= (SELECT TOP 1 [StartSpalte] + CONVERT(CHAR(1), [StartReihe]) FROM @Computerzug)
+		SET @ZielquadratComputerzug			= (SELECT TOP 1 [ZielSpalte] + CONVERT(CHAR(1), [ZielReihe]) FROM @Computerzug)
+		SET @UmwandlungsfigurComputerzug	= (SELECT TOP 1 [UmwandlungsfigurBuchstabe] FROM @Computerzug)
+		SET @IstEnPassantComputerzug		= (SELECT TOP 1 [ZugIstEnPassant] FROM @Computerzug)
+
+		EXECUTE [Spiel].[prcZugAusfuehren] 
+			  @StartquadratComputerzug
+			, @ZielquadratComputerzug
+			, @UmwandlungsfigurComputerzug
+			, @IstEnPassantComputerzug
+			, 'FALSE'
+
+		SELECT 'Weitere Zuege gegen den Computergegner bitte mit EXEC [Spiel].[prcZugausfuehrenUndReagieren] beginnen'
+	END
+	ELSE
+	BEGIN
+		SELECT 'Spielstufe noch nicht implementiert'
+	END
 
 END
 GO

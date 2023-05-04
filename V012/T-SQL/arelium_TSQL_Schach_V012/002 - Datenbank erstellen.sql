@@ -21,7 +21,7 @@
 -- ###      Torsten Ahlemeyer fuer arelium GmbH, (https://www.arelium.de)                  ###
 -- ###      Kontakt: torsten.ahlemeyer@arelium.de                                          ###
 -- ###      ----------------                                                               ###
--- ###      Ein grosser Dank geht an (MVP) Uwe Ricken, der dem Projekt mit mit Rat und     ###
+-- ###      Ein grosser Dank geht an (MVP) Uwe Ricken, der dem Projekt mit Rat und         ###
 -- ###      Tat vor allem (aber nicht nur) im Bereich der Laufzeitoptimierung zur Seite    ###
 -- ###      stand und steht (https://www.db-berater.de/).                                  ###
 -- ### ----------------------------------------------------------------------------------- ###

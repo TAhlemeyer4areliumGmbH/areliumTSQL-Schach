@@ -87,6 +87,7 @@ CREATE OR ALTER PROCEDURE [Spiel].[prcTSQL_vs_TSQL]
 		, @RestzeitSchwarzInSekunden			AS INTEGER
 		, @ComputerSchritteAnzeigenWeiss		AS BIT
 		, @ComputerSchritteAnzeigenSchwarz		AS BIT
+		, @GebrauchsanweisungAnzeigen			AS BIT
 	)
 AS
 BEGIN
@@ -101,6 +102,7 @@ BEGIN
 		, @RestzeitSchwarzInSekunden
 		, @ComputerSchritteAnzeigenWeiss
 		, @ComputerSchritteAnzeigenSchwarz
+		, @GebrauchsanweisungAnzeigen
 		
 
 	DECLARE @Computerzug						AS [dbo].[typMoeglicheAktionen] 

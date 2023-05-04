@@ -86,6 +86,7 @@ CREATE OR ALTER PROCEDURE [Spiel].[prcTSQL_vs_Mensch]
 		, @RestzeitSchwarzInSekunden			AS INTEGER
 		, @ComputerSchritteAnzeigenWeiss		AS BIT
 		, @ComputerSchritteAnzeigenSchwarz		AS BIT
+		, @GebrauchsanweisungAnzeigen			AS BIT
 	)
 AS
 BEGIN
@@ -100,6 +101,7 @@ BEGIN
 		, @RestzeitSchwarzInSekunden
 		, @ComputerSchritteAnzeigenWeiss
 		, @ComputerSchritteAnzeigenSchwarz
+		, @GebrauchsanweisungAnzeigen
 
 	-- Weiss macht den ersten Zug (dies ist der Computerpieler)
 	DECLARE @Computerzug						AS [dbo].[typMoeglicheAktionen] 

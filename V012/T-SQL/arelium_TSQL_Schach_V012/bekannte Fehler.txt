@@ -13,6 +13,10 @@ Die (Ge-)Wichtungsfunktion fuer die Stellunsgbewertung ist feiner zu justieren. 
 (bspw. Anzahl und Wert der verbliebenen Figuren, Aktivitaet der Figuren bzgl. Ziehen/Schlagen, ... sowie
 weitere Parameter wie Zahl der noch erlaubten Rochaden, die verbliebene Restzeit)
 
+Im Spiel T-SQL vs T-SQL fiel auf, dass der Koenig sich noch selber aktiv ins Schach gegenueber einem 
+feindlichen Bauern begeben kann.
+
+
 Die Tabelle [MoeglicheAktionen] enthaelt noch Aktionen von Figuren, die eigentlich aufgrund einer 
 Fesselung nicht ziehen duerfen
 

@@ -51,48 +51,52 @@ GO
 
 -- Bewirkt, dass SQL Server die ISO-Regeln fuer Anfuehrungszeichen bei Bezeichnern und Literalzeichenfolgen befolgt.
 SET QUOTED_IDENTIFIER ON
-GOUSE [arelium_TSQL_Schach_V012]
 GO
 
-DECLARE @RC int
-DECLARE @NameWeiss nvarchar(30)
-DECLARE @NameSchwarz nvarchar(30)
-DECLARE @SpielstaerkeWeiss tinyint
-DECLARE @SpielstaerkeSchwarz tinyint
-DECLARE @RestzeitWeissInSekunden int
-DECLARE @RestzeitSchwarzInSekunden int
-DECLARE @ComputerSchritteAnzeigenWeiss bit
-DECLARE @ComputerSchritteAnzeigenSchwarz bit
+USE [arelium_TSQL_Schach_V012]
+GO
+
+DECLARE @NameWeiss							NVARCHAR(30)
+DECLARE @NameSchwarz						NVARCHAR(30)
+DECLARE @SpielstaerkeWeiss					TINYINT
+DECLARE @SpielstaerkeSchwarz				TINYINT
+DECLARE @RestzeitWeissInSekunden			INTEGER
+DECLARE @RestzeitSchwarzInSekunden			INTEGER
+DECLARE @ComputerSchritteAnzeigenWeiss		BIT
+DECLARE @ComputerSchritteAnzeigenSchwarz	BIT
+DECLARE @GebrauchsanweisungAnzeigen			BIT
 
 SET @NameWeiss							= 'Computer'
 SET @NameSchwarz						= 'Torsten'
-SET @SpielstaerkeWeiss					= 2
+SET @SpielstaerkeWeiss					= 3
 SET @SpielstaerkeSchwarz				= 1
 SET @RestzeitWeissInSekunden			= 5700
 SET @RestzeitSchwarzInSekunden			= 5700
 SET @ComputerSchritteAnzeigenWeiss		= 1
 SET @ComputerSchritteAnzeigenSchwarz	= 1
+SET @GebrauchsanweisungAnzeigen			= 'FALSE'
 
 
-EXECUTE @RC = [Spiel].[prcTSQL_vs_Mensch] 
-   @NameWeiss
-  ,@NameSchwarz
-  ,@SpielstaerkeWeiss
+EXECUTE [Spiel].[prcTSQL_vs_Mensch] 
+    @NameWeiss
+  , @NameSchwarz
+  , @SpielstaerkeWeiss
   -- Spielstaerke WEISS ist der Festwert 1
-  ,@RestzeitWeissInSekunden
-  ,@RestzeitSchwarzInSekunden
-  ,@ComputerSchritteAnzeigenWeiss
-  ,@ComputerSchritteAnzeigenSchwarz
+  , @RestzeitWeissInSekunden
+  , @RestzeitSchwarzInSekunden
+  , @ComputerSchritteAnzeigenWeiss
+  , @ComputerSchritteAnzeigenSchwarz
+  , @GebrauchsanweisungAnzeigen
 GO
 
-
+/*
 -- Die Zeit fuer SCHWARZ laeuft...
-EXECUTE [Spiel].[prcZugAusfuehren] 
-		  @Startquadrat				= 'e7'
-		, @Zielquadrat				= 'e5'
+EXECUTE [Spiel].[prcZugAusfuehrenUndReagieren] 
+		  @Startquadrat				= 'd5'
+		, @Zielquadrat				= 'e4'
 		, @Umwandlungsfigur			= NULL
 		, @IstEnPassant				= 'FALSE'
 		, @IstSpielerWeiss			= 'FALSE'
 GO	
-
+*/
 -- WEISS zieht automatsich!
