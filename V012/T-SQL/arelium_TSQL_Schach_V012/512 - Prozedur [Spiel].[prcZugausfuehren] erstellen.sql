@@ -235,13 +235,13 @@ BEGIN
 															OR @Umwandlungsfigur	= [UmwandlungsfigurBuchstabe]
 														)
 													AND [IstSpielerWeiss]			= @IstSpielerWeiss
-													AND [ZugIstEnPassant]			= CASE 
-																						WHEN (SELECT [FigurUTF8] 
-																							FROM [Infrastruktur].[Spielbrett]
-																							WHERE [Feld] = @Startfeld) = 160
-																						THEN 'TRUE'
-																						ELSE 'FALSE'
-																						END
+													--AND [ZugIstEnPassant]			= CASE 
+													--									WHEN (SELECT [FigurUTF8] 
+													--										FROM [Infrastruktur].[Spielbrett]
+													--										WHERE [Feld] = @Startfeld) = 160
+													--									THEN 'TRUE'
+													--									ELSE 'FALSE'
+													--									END
 																)
 
 											-- Gibt es einen solchen Zug?

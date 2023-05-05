@@ -116,11 +116,11 @@ GO
 -- Vollzug 004
 EXECUTE [Spiel].[prcZugAusfuehren] 'e5', 'd6', NULL, 'TRUE', 'TRUE'				-- Weiss versucht es trotzdem
 GO																				-- Das Programm merkt den Fehler
-EXECUTE [Spiel].[prcZugAusfuehren] 'a2', 'a3', NULL, 'TRUE', 'TRUE'				-- Weiss versucht es trotzdem
-GO																				-- Das Programm merkt den Fehler
+EXECUTE [Spiel].[prcZugAusfuehren] 'a2', 'a3', NULL, 'TRUE', 'TRUE'				
+GO																				
 EXECUTE [Spiel].[prcZugAusfuehren] 'f7', 'f5', NULL, 'FALSE', 'FALSE'			-- die Voraussetzung fuer "en passant" ist erneut gegeben
 GO	
 
 -- Vollzug 005
 EXECUTE [Spiel].[prcZugAusfuehren] 'e5', 'f6', NULL, 'TRUE', 'TRUE'				-- Weiss versucht es nochmal
-GO																				-- Das Programm merkt den Fehler
+GO																				-- Das Programm laesst nun den Zug zu

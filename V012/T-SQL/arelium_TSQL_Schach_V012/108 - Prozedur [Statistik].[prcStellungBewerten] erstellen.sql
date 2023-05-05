@@ -118,7 +118,7 @@ BEGIN
 	BEGIN
 		UPDATE [Statistik].[Stellungsbewertung]
 		SET 
-				[Weiss]	= [Statistik].[fncFigurWertZaehlen] ('TRUE',	@ASpielbrett)
+			  [Weiss]	= [Statistik].[fncFigurWertZaehlen] ('TRUE',	@ASpielbrett)
 			, [Schwarz]	= [Statistik].[fncFigurWertZaehlen] ('FALSE',	@ASpielbrett)
 		WHERE [Label] = 'Figurwert:'
 	END
@@ -159,12 +159,25 @@ BEGIN
 	--	, [Schwarz]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheSchlaege]('FALSE', @ASpielbrett))
 	--WHERE [Label] = 'Anzahl Schlaege:'
 
-	---- Es sollen die noch verbleibenden Rochademoeglichkeiten gezaehlt werden
-	--UPDATE [Statistik].[Stellungsbewertung]
-	--SET 
-	--	  [Weiss]	= (SELECT CONVERT(TINYINT, [IstKurzeRochadeErlaubt]) + CONVERT(TINYINT, [IstLangeRochadeErlaubt]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'TRUE')
-	--	, [Schwarz]	= (SELECT CONVERT(TINYINT, [IstKurzeRochadeErlaubt]) + CONVERT(TINYINT, [IstLangeRochadeErlaubt]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE')
-	--WHERE [Label] = 'Anzahl Rochaden:'
+	-- Es sollen die noch verbleibenden Rochademoeglichkeiten gezaehlt werden
+	IF (SELECT [ZuberechnenAnzahlRochaden] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
+			INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
+			WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+			  [Weiss]	= (SELECT CONVERT(TINYINT, [IstKurzeRochadeErlaubt]) + CONVERT(TINYINT, [IstLangeRochadeErlaubt]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'TRUE')
+			, [Schwarz]	= (SELECT CONVERT(TINYINT, [IstKurzeRochadeErlaubt]) + CONVERT(TINYINT, [IstLangeRochadeErlaubt]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE')
+		WHERE [Label] = 'Anzahl Rochaden:'
+	END
+	ELSE
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= NULL
+			, [Schwarz]	= NULL
+		WHERE [Label] = 'Anzahl Rochaden:'
+	END
 
 	---- Aus allen Einzelmessungen ist nun ein Gesamtwert zu bilden
 	--UPDATE [Statistik].[Stellungsbewertung]
