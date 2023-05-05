@@ -80,8 +80,8 @@ GO
 DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
 DECLARE @MaxZaehler						INTEGER
 
---SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Lasker.pgn'
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Lasker.pgn'
+SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Lasker.pgn'
+--SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Lasker.pgn'
 SET @MaxZaehler					= 20
 
 EXECUTE [Bibliothek].[prcImportPGN] 
@@ -95,8 +95,8 @@ GO
 DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
 DECLARE @MaxZaehler						INTEGER
 
---SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Huebner.pgn'
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Huebner.pgn'
+SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Huebner.pgn'
+--SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Huebner.pgn'
 SET @MaxZaehler					= 20
 
 EXECUTE [Bibliothek].[prcImportPGN] 
@@ -110,8 +110,8 @@ GO
 DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
 DECLARE @MaxZaehler						INTEGER
 
---SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Kasparov.pgn'
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Kasparov.pgn'
+SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Kasparov.pgn'
+--SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Kasparov.pgn'
 SET @MaxZaehler					= 20
 
 EXECUTE [Bibliothek].[prcImportPGN] 
@@ -126,8 +126,8 @@ GO
 DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
 DECLARE @MaxZaehler						INTEGER
 
---SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Karpov.pgn'
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Karpov.pgn'
+SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Karpov.pgn'
+--SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Karpov.pgn'
 SET @MaxZaehler					= 20
 
 EXECUTE [Bibliothek].[prcImportPGN] 
