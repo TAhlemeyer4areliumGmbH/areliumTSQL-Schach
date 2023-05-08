@@ -2,7 +2,7 @@
 -- ### arelium_TSQL_Schach_V012 ##############################################################
 -- ### Das Spiel der Koenige - Projektversion ################################################
 -- ###########################################################################################
--- ### Beispielpartie 003                                                                  ###
+-- ### Beispielpartie 007                                                                  ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Dieses Skript simuliert eine komplette Schachpartie und soll die Features dieses    ###
 -- ### Programms vorstellen. Man fuehrt es Schritt fuer Schritt aus.                       ###
@@ -59,7 +59,7 @@ GO
 
 
 --------------------------------------------------------------------------------------------------
--- Partie 003 ------------------------------------------------------------------------------------
+-- Partie 007 ------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
 -- Das Spiel initialisieren
@@ -68,61 +68,38 @@ EXECUTE [Spiel].[prcInitialisierung]
     @NameWeiss							= 'Peter'
   , @NameSchwarz						= 'Sandy'
   , @IstSpielerMenschWeiss				= 'TRUE'
-  , @IstSpielerMenschSchwarz			= 'TRUE'
-  , @SpielstaerkeWeiss					= 1			-- menschlicher Gegner
-  , @SpielstaerkeSchwarz				= 1			-- menschlicher Gegner
+  , @IstSpielermenschSchwarz			= 'TRUE'
+  , @SpielstaerkeWeiss					= 14		-- Grundschule+
+  , @SpielstaerkeSchwarz				= 6			-- Kleinkind+
   , @RestzeitWeissInSekunden			= 5400		-- Beispiel: 1 Stunde und 30 Minuten = 5400 Sekunden
   , @RestzeitSchwarzInSekunden			= 7200		-- Beispiel: 2 Stunden = 7200 Sekunden
-  , @ComputerSchritteAnzeigenWeiss		= 'TRUE'	
-  , @ComputerSchritteAnzeigenSchwarz	= 'FALSE'
-  , @BedienungsanleitungAnzeigen		= 'TRUE'	-- Zeigt vorab eine Anleitung mit den moeglichen Befehlen
+  , @ComputerSchritteAnzeigenWeiss		= 'TRUE'
+  , @ComputerSchritteAnzeigenSchwarz	= 'TRUE'
+  , @BedienungsanleitungAnzeigen		= 'FALSE'	-- Zeigt vorab eine Anleitung mit den moeglichen Befehlen
 GO
 
 
 
--- Die Zeit fuer WEISS laeuft...
-
--- Es zieht WEISS den ersten Zug -> Bauer von f2 nach f3
-EXECUTE [Spiel].[prcZugAusfuehren] 
-		  @Startquadrat				= 'e2'
-		, @Zielquadrat				= 'e4'
-		, @Umwandlungsfigur			= NULL
-		, @IstEnPassant				= 'FALSE'
-		, @IstSpielerWeiss			= 'TRUE'
+-- Vollzug 001
+EXECUTE [Spiel].[prcZugAusfuehren] 'd2', 'd4', NULL, 'FALSE', 'TRUE'			-- Figurwert 40 / 40
 GO	
-
-
--- Die Zeit fuer SCHWARZ laeuft...
-
--- Es zieht SCHWARZ den ersten Zug -> Bauer von a7 nach a5
-EXECUTE [Spiel].[prcZugAusfuehren] 
-		  @Startquadrat				= 'a7'
-		, @Zielquadrat				= 'a5'
-		, @Umwandlungsfigur			= NULL
-		, @IstEnPassant				= 'FALSE'
-		, @IstSpielerWeiss			= 'FALSE'
-GO	
+EXECUTE [Spiel].[prcZugAusfuehren] 'c7', 'c5', NULL, 'FALSE', 'FALSE'
+GO
 
 -- Vollzug 002
-EXECUTE [Spiel].[prcZugAusfuehren] 'e4', 'e5', NULL, 'FALSE', 'TRUE'
+EXECUTE [Spiel].[prcZugAusfuehren] 'b1', 'c3', NULL, 'FALSE', 'TRUE'
 GO	
-EXECUTE [Spiel].[prcZugAusfuehren] 'd7', 'd5', NULL, 'FALSE', 'FALSE'			-- die Voraussetzung fuer "en passant" ist gegeben
+EXECUTE [Spiel].[prcZugAusfuehren] 'c5', 'd4', NULL, 'FALSE', 'FALSE'			-- Figurwert 39 / 40
 GO	
 
 -- Vollzug 003
-EXECUTE [Spiel].[prcZugAusfuehren] 'h2', 'h3', NULL, 'FALSE', 'TRUE'			-- Weiss nutzt die "en passant"-Moeglichkeit nicht
+EXECUTE [Spiel].[prcZugAusfuehren] 'd1', 'd4', NULL, 'FALSE', 'TRUE'			-- Figurwert 39 / 39
 GO	
-EXECUTE [Spiel].[prcZugAusfuehren] 'h7', 'h5', NULL, 'FALSE', 'FALSE'
+EXECUTE [Spiel].[prcZugAusfuehren] 'b8', 'c6', NULL, 'FALSE', 'FALSE'
 GO	
 
 -- Vollzug 004
-EXECUTE [Spiel].[prcZugAusfuehren] 'e5', 'd6', NULL, 'TRUE', 'TRUE'				-- Weiss versucht es trotzdem
-GO																				-- Das Programm merkt den Fehler
-EXECUTE [Spiel].[prcZugAusfuehren] 'a2', 'a3', NULL, 'TRUE', 'TRUE'				
-GO																				
-EXECUTE [Spiel].[prcZugAusfuehren] 'f7', 'f5', NULL, 'FALSE', 'FALSE'			-- die Voraussetzung fuer "en passant" ist erneut gegeben
+EXECUTE [Spiel].[prcZugAusfuehren] 'e2', 'e4', NULL, 'FALSE', 'TRUE'
+GO
+EXECUTE [Spiel].[prcZugAusfuehren] 'c6', 'd4', NULL, 'FALSE', 'FALSE'			-- Figurwert 29 / 39
 GO	
-
--- Vollzug 005
-EXECUTE [Spiel].[prcZugAusfuehren] 'e5', 'f6', NULL, 'TRUE', 'TRUE'				-- Weiss versucht es nochmal
-GO																				-- Das Programm laesst nun den Zug zu

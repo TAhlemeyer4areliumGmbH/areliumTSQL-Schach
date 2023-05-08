@@ -81,6 +81,8 @@ CREATE OR ALTER PROCEDURE [Spiel].[prcTSQL_vs_Mensch]
 	(
 		  @NameWeiss							AS NVARCHAR(30)
 		, @NameSchwarz							AS NVARCHAR(30)
+		, @IstSpielerMenschWeiss				AS BIT
+		, @IstSpielerMenschSchwarz				AS BIT
 		, @SpielstaerkeWeiss					AS TINYINT
 		, @RestzeitWeissInSekunden				AS INTEGER
 		, @RestzeitSchwarzInSekunden			AS INTEGER
@@ -95,6 +97,8 @@ BEGIN
 	EXECUTE [Spiel].[prcInitialisierung] 
 		  @NameWeiss
 		, @NameSchwarz
+		, @IstSpielerMenschWeiss	
+		, @IstSpielerMenschSchwarz
 		, @SpielstaerkeWeiss
 		, 1								-- fixer Wert, da SCHWARZ immer ein menschlicher Spieler ist!
 		, @RestzeitWeissInSekunden
@@ -111,7 +115,7 @@ BEGIN
 	DECLARE @IstEnPassantComputerzug			AS BIT
 
 	-- nun reagiert der Rechner als Gegenspieler
-	IF (SELECT [SpielstaerkeID] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE') BETWEEN 3 AND 4				-- zufaelliger Zug
+	IF (SELECT [SpielstaerkeID] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE') BETWEEN 1 AND 2				-- zufaelliger Zug
 	BEGIN
 		
 		INSERT INTO @Computerzug

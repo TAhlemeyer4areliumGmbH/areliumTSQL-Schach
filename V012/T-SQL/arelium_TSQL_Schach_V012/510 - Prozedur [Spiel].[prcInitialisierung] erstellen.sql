@@ -66,6 +66,8 @@ GO
 CREATE OR ALTER PROCEDURE [Spiel].[prcInitialisierung]
 	  @NameWeiss							AS NVARCHAR(30)
 	, @NameSchwarz							AS NVARCHAR(30)
+	, @IstSpielerMenschWeiss				AS BIT 
+	, @IstSpielerMenschSchwarz				AS BIT 
 	, @SpielstaerkeWeiss					AS TINYINT
 	, @SpielstaerkeSchwarz					AS TINYINT
 	, @RestzeitWeissInSekunden				AS INTEGER
@@ -96,6 +98,7 @@ BEGIN
 	INSERT INTO [Spiel].[Konfiguration]
 		( [IstSpielerWeiss]
 		, [Spielername]
+		, [IstSpielerMensch]
 		, [SpielstaerkeID]
 		, [RestzeitInSekunden]
 		, [ZeitpunktLetzterZug]
@@ -104,9 +107,9 @@ BEGIN
 		, [IstLangeRochadeErlaubt]
 		   )
      VALUES
-             ('FALSE'	, @NameWeiss	, @SpielstaerkeWeiss	, @RestzeitWeissInSekunden		, GETDATE(), @ComputerSchritteAnzeigenWeiss		, 'TRUE', 'TRUE')
-           , ('TRUE'	, @NameSchwarz	, @SpielstaerkeSchwarz	, @RestzeitSchwarzInSekunden	, GETDATE(), @ComputerSchritteAnzeigenSchwarz	, 'TRUE', 'TRUE')
-
+		  ('FALSE'	, @NameWeiss	, @IstSpielermenschWeiss	, @SpielstaerkeWeiss	, @RestzeitWeissInSekunden		, GETDATE(), @ComputerSchritteAnzeigenWeiss		, 'TRUE', 'TRUE')
+		, ('TRUE'	, @NameSchwarz	, @IstSpielermenschSchwarz	, @SpielstaerkeSchwarz	, @RestzeitSchwarzInSekunden	, GETDATE(), @ComputerSchritteAnzeigenSchwarz	, 'TRUE', 'TRUE')
+ 
 	-- zuerst das aktuelle Spielbrett in eine Variable einlesen
 	DECLARE @ASpielbrett	AS [dbo].[typStellung]
 	INSERT INTO @ASpielbrett

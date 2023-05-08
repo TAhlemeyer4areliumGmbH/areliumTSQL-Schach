@@ -118,15 +118,15 @@ BEGIN
 	BEGIN
 		UPDATE [Statistik].[Stellungsbewertung]
 		SET 
-			  [Weiss]	= [Statistik].[fncFigurWertZaehlen] ('TRUE',	@ASpielbrett)
-			, [Schwarz]	= [Statistik].[fncFigurWertZaehlen] ('FALSE',	@ASpielbrett)
+			  [Weiss]	= isnull([Statistik].[fncFigurWertZaehlen] ('TRUE',	@ASpielbrett), 9)
+			, [Schwarz]	= isnull([Statistik].[fncFigurWertZaehlen] ('FALSE',	@ASpielbrett), 9)
 		WHERE [Label] = 'Figurwert:'
 	END
 	ELSE
 	BEGIN
 		UPDATE [Statistik].[Stellungsbewertung]
 		SET 
-				[Weiss]	= NULL
+			  [Weiss]	= NULL
 			, [Schwarz]	= NULL
 		WHERE [Label] = 'Figurwert:'
 	END
@@ -148,7 +148,7 @@ BEGIN
 		SET 
 				[Weiss]	= NULL
 			, [Schwarz]	= NULL
-		WHERE [Label] = 'Figurwert:'
+		WHERE [Label] = 'Anzahl Aktionen:'
 	END
 
 	
@@ -179,13 +179,13 @@ BEGIN
 		WHERE [Label] = 'Anzahl Rochaden:'
 	END
 
-	---- Aus allen Einzelmessungen ist nun ein Gesamtwert zu bilden
-	--UPDATE [Statistik].[Stellungsbewertung]
-	--SET 
-	--	  [Weiss]	= 0
-	--	, [Schwarz]	= [Statistik].[fncAktuelleStellungBewerten]()
-	--WHERE [Label] = 'Gesamtbewertung:'
-	
+	-- Aus allen Einzelmessungen ist nun ein Gesamtwert zu bilden
+	UPDATE [Statistik].[Stellungsbewertung]
+	SET 
+		  [Weiss]	= 0
+		, [Schwarz]	= [Statistik].[fncAktuelleStellungBewerten]()
+	WHERE [Label] = 'Gesamtbewertung:'
+
 END
 GO
 

@@ -157,12 +157,12 @@ INSERT INTO [Infrastruktur].[Spielstaerke]
            , [ZuberechnenAnzahlFreibauern]
            , [ZuberechnenBauernkette])
      VALUES
-             ( 1, 'Mensch',				0, 0,  0,  0,  0,  0,  0,  0)
-           , ( 2, 'Mensch+',			1, 0,  0,  0,  0,  0,  0,  0)
-		   , ( 3, 'Kindergarten',		0, 0,  0,  0,  0,  0,  0,  0)
-		   , ( 4, 'Kindergarten+',		1, 0,  0,  0,  0,  0,  0,  0)
-		   , ( 5, 'Grundschule',		0, 1,  0,  0,  0,  0,  0,  0)
-		   , ( 6, 'Grundschule+',		1, 1,  0,  0,  0,  0,  0,  0)
+             ( 1, 'Kindergarten',		0, 0,  0,  0,  0,  0,  0,  0)
+           , ( 2, 'Kindergarten+',		1, 0,  0,  0,  0,  0,  0,  0)
+		   , ( 3, 'Grundschule',		0, 1,  0,  0,  0,  0,  0,  0)
+		   , ( 4, 'Grundschule+',		1, 1,  0,  0,  0,  0,  0,  0)
+		   , ( 5, 'Sekundarstufe',		0, 1,  0,  0,  0,  0,  0,  0)
+		   , ( 6, 'Sekundarstufe+',		1, 1,  0,  0,  0,  0,  0,  0)
 		   , ( 7, 'Hobbyspielerin',		0, 1,  0,  1,  0,  0,  0,  0)
 		   , ( 8, 'Hobbyspielerin+',	1, 1,  0,  1,  0,  0,  0,  0)
 		   , ( 9, 'Kreisklasse',		0, 1,  1,  1,  1,  0,  0,  0)

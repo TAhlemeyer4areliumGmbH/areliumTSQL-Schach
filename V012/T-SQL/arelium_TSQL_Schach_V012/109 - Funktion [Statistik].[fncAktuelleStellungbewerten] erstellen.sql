@@ -90,20 +90,18 @@ BEGIN
 	DECLARE @LaengeBauerketten		AS FLOAT
 
 	SET @Figurwert			= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Figurwert:')
-	SET @AnzahlAktionen		= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Anzahl Aktionen:') / 10
-	SET @AnzahlAktionen		= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Anzahl Schlaege:') / 8
-	SET @AnzahlRochade		= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Anzahl Rochaden:') / 2
-	SET @Bauernvormarsch	= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Bauernvormarsch:') / 0.7
-	SET @AnzahlFreibauern	= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Anzahl Freibauern:') / 0.8
-	SET @LaengeBauerketten	= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Länge Bauernketten:') / 0.4
+	SET @AnzahlAktionen		= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Anzahl Aktionen:') / 15
+	SET @AnzahlSchlaege		= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Anzahl Schlaege:') / 20
+	SET @AnzahlRochade		= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Anzahl Rochaden:') / 30
+	SET @Bauernvormarsch	= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Bauernvormarsch:') / 20
+	SET @AnzahlFreibauern	= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Anzahl Freibauern:') / 30
+	SET @LaengeBauerketten	= (SELECT [Weiss] - [Schwarz] FROM [Statistik].[Stellungsbewertung] WHERE [Label] = 'Länge Bauernketten:') / 50
 	
-
-
-	SET @RueckgabeWert =  ISNULL(@Figurwert, 0)			+ ISNULL(@AnzahlAktionen, 0) 
-						+ ISNULL(@AnzahlSchlaege, 0)	+ ISNULL(@AnzahlRochade, 0)
-						+ ISNULL(@Bauernvormarsch, 0)	+ ISNULL(@AnzahlFreibauern, 0)
-						+ ISNULL(@LaengeBauerketten, 0)
-
+	SET @RueckgabeWert =  ISNULL(@Figurwert, 0.0)			+ ISNULL(@AnzahlAktionen, 0.0) 
+						+ ISNULL(@AnzahlSchlaege, 0.0)	+ ISNULL(@AnzahlRochade, 0.0)
+						+ ISNULL(@Bauernvormarsch, 0.0)	+ ISNULL(@AnzahlFreibauern, 0.0)
+						+ ISNULL(@LaengeBauerketten, 0.0)
+					
 	RETURN @RueckgabeWert 
 
 END

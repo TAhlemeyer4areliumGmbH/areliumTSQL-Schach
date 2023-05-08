@@ -81,6 +81,8 @@ CREATE OR ALTER PROCEDURE [Spiel].[prcTSQL_vs_TSQL]
 	(
 		  @NameWeiss							AS NVARCHAR(30)
 		, @NameSchwarz							AS NVARCHAR(30)
+		, @IstSpielerMenschWeiss				AS BIT
+		, @IstSpielerMenschSchwarz				AS BIT
 		, @SpielstaerkeWeiss					AS TINYINT
 		, @SpielstaerkeSchwarz					AS TINYINT
 		, @RestzeitWeissInSekunden				AS INTEGER
@@ -96,6 +98,8 @@ BEGIN
 	EXECUTE [Spiel].[prcInitialisierung] 
 		  @NameWeiss
 		, @NameSchwarz
+		, @IstSpielerMenschWeiss	
+		, @IstSpielerMenschSchwarz
 		, @SpielstaerkeWeiss
 		, @SpielstaerkeSchwarz
 		, @RestzeitWeissInSekunden

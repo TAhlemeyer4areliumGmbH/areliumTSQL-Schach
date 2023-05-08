@@ -59,7 +59,7 @@ GO
 
 
 --------------------------------------------------------------------------------------------------
--- Partie 001 ------------------------------------------------------------------------------------
+-- Partie 006 ------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
 -- Das Spiel initialisieren
@@ -67,6 +67,8 @@ GO
 EXECUTE [Spiel].[prcInitialisierung] 
     @NameWeiss							= 'Peter'
   , @NameSchwarz						= 'Sandy'
+  , @IstSpielerMenschWeiss				= 'TRUE'
+  , @IstSpielerMenschSchwarz			= 'TRUE'
   , @SpielstaerkeWeiss					= 2			-- menschlicher Gegner
   , @SpielstaerkeSchwarz				= 2			-- menschlicher Gegner
   , @RestzeitWeissInSekunden			= 5400		-- Beispiel: 1 Stunde und 30 Minuten = 5400 Sekunden

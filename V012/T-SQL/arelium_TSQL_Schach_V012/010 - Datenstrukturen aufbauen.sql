@@ -554,6 +554,7 @@ CREATE TABLE [Spiel].[Konfiguration]
 (
       [IstSpielerWeiss]				BIT				NOT NULL
 	, [Spielername]					NVARCHAR(30)	NOT NULL
+	, [IstSpielerMensch]			BIT				NOT NULL
     , [SpielstaerkeID]				INTEGER			NOT NULL     
 	, [RestzeitInSekunden]			INTEGER			NOT NULL
 	, [ZeitpunktLetzterZug]			DATETIME2		NULL

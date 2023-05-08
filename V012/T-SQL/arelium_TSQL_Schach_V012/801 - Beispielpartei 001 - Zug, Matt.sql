@@ -67,8 +67,10 @@ GO
 EXECUTE [Spiel].[prcInitialisierung] 
     @NameWeiss							= 'Peter'
   , @NameSchwarz						= 'Sandy'
-  , @SpielstaerkeWeiss					= 1			-- menschlicher Gegner
-  , @SpielstaerkeSchwarz				= 2			-- menschlicher Gegner mit Spicken
+  , @IstSpielerMenschWeiss				= 'TRUE'
+  , @IstSpielerMenschSchwarz			= 'TRUE'
+  , @SpielstaerkeWeiss					= 4			-- Kindergartenkind+
+  , @SpielstaerkeSchwarz				= 2			-- Kleinkind+
   , @RestzeitWeissInSekunden			= 5400		-- Beispiel: 1 Stunde und 30 Minuten = 5400 Sekunden
   , @RestzeitSchwarzInSekunden			= 7200		-- Beispiel: 2 Stunden = 7200 Sekunden
   , @ComputerSchritteAnzeigenWeiss		= 'TRUE'

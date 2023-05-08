@@ -141,14 +141,17 @@ SELECT
 	, [SichtSchwarz].[..]								AS [.,]
 	, ISNULL([GF].[geschlagene Figur(en)], '')			AS [geschlagene Figuren]
 	, '|'												AS [;]
-	, CASE (SELECT [ComputerSchritteAnzeigen] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) 
-			WHEN 'FALSE' THEN ISNULL([MA].[LangeNotation], '')
+	, CASE (SELECT [ComputerSchritteAnzeigen] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = (([Spiel].[fncIstWeissAmZug]() + 1) % 2)) 
+			WHEN 'TRUE' THEN ISNULL([MA].[LangeNotation], '')
 			ELSE '---'									
 		END												AS [Zugideen]
 	, '|'												AS [:]
 	, ISNULL([BE].[Label], '')							AS [Kriterium]
 	, ISNULL([BE].[Weiss], '')							AS [Weiss]
-	, ISNULL([BE].[Schwarz], '')						AS [Schwarz]
+	, CASE [BE].[Label] 
+		WHEN 'Gesamtbewertung:' THEN FORMAT(CONVERT(FLOAT, ISNULL([BE].[Schwarz], '')), '0.0#')	
+		ELSE ISNULL([BE].[Schwarz], '')
+	   END												AS [Schwarz]
 	, ISNULL([GMP].[Wert], '')							AS [Bibliothek]
 FROM
 	(

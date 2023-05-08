@@ -70,6 +70,8 @@ DECLARE @NameWeiss nvarchar(30)
 DECLARE @NameSchwarz						NVARCHAR(30)
 DECLARE @SpielstaerkeWeiss					TINYINT
 DECLARE @SpielstaerkeSchwarz				TINYINT
+DECLARE @IstSpielerMenschWeiss				BIT
+DECLARE @IstSpielerMenschSchwarz			BIT
 DECLARE @RestzeitWeissInSekunden			INTEGER
 DECLARE @RestzeitSchwarzInSekunden			INTEGER
 DECLARE @ComputerSchritteAnzeigenWeiss		BIT
@@ -84,6 +86,8 @@ SET @NameWeiss							= 'Torsten'
 SET @NameSchwarz						= 'Compi'
 SET @SpielstaerkeWeiss					= 1
 SET @SpielstaerkeSchwarz				= 3
+SET @IstSpielerMenschWeiss				= 'TRUE'
+SET @IstSpielerMenschSchwarz			= 'FALSE'
 SET @RestzeitWeissInSekunden			= 5700
 SET @RestzeitSchwarzInSekunden			= 5700
 SET @ComputerSchritteAnzeigenWeiss		= 1
@@ -98,6 +102,8 @@ SET @GebrauchsanweisungAnzeigen			= 'FALSE'
 EXECUTE @RC = [Spiel].[prcMensch_vs_TSQL] 
     @NameWeiss
   , @NameSchwarz
+  , @IstSpielerMenschWeiss
+  , @IstSpielerMenschSchwarz
   -- Spielstaerke WEISS ist der Festwert 1
   , @SpielstaerkeSchwarz
   , @RestzeitWeissInSekunden
