@@ -152,12 +152,25 @@ BEGIN
 	END
 
 	
-	---- Es sollen die Schlagmoeglichkeiten gezaehlt werden
-	--UPDATE [Statistik].[Stellungsbewertung]
-	--SET 
-	--		[Weiss]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheSchlaege]('TRUE', @ASpielbrett))
-	--	, [Schwarz]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheSchlaege]('FALSE', @ASpielbrett))
-	--WHERE [Label] = 'Anzahl Schlaege:'
+	------ Es sollen die Schlagmoeglichkeiten gezaehlt werden
+	--IF (SELECT [ZuberechnenAnzahlSchlagmoeglichkeiten] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
+	--		INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
+	--		WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
+	--BEGIN
+	--	UPDATE [Statistik].[Stellungsbewertung]
+	--	SET 
+	--			[Weiss]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheSchlaege]('TRUE', @ASpielbrett))
+	--		, [Schwarz]	= (SELECT COUNT(*) FROM [Spiel].[fncMoeglicheSchlaege]('FALSE', @ASpielbrett))
+	--	WHERE [Label] = 'Anzahl Schlaege:'
+	--END
+	--ELSE
+	--BEGIN
+	--	UPDATE [Statistik].[Stellungsbewertung]
+	--	SET 
+	--			[Weiss]	= NULL
+	--		, [Schwarz]	= NULL
+	--	WHERE [Label] = 'Anzahl Schlaege:'
+	--END
 
 	-- Es sollen die noch verbleibenden Rochademoeglichkeiten gezaehlt werden
 	IF (SELECT [ZuberechnenAnzahlRochaden] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
@@ -178,6 +191,75 @@ BEGIN
 			, [Schwarz]	= NULL
 		WHERE [Label] = 'Anzahl Rochaden:'
 	END
+
+		
+	------ Es sollen der Bauernvormarsch bewertet werden
+	--IF (SELECT [ZuberechnenBauernvormarsch] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
+	--		INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
+	--		WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
+	--BEGIN
+	--	UPDATE [Statistik].[Stellungsbewertung]
+	--	SET 
+	--			[Weiss]	= 1234
+	--		, [Schwarz]	= 1234
+	--	WHERE [Label] = 'Bauernvormarsch:'
+	--END
+	--ELSE
+	--BEGIN
+	--	UPDATE [Statistik].[Stellungsbewertung]
+	--	SET 
+	--			[Weiss]	= NULL
+	--		, [Schwarz]	= NULL
+	--	WHERE [Label] = 'Bauernvormarsch:'
+	--END
+
+
+		
+	-- Es sollen die Freibauern gezaehlt werden
+	IF (SELECT [ZuberechnenAnzahlFreibauern] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
+			INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
+			WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= 0
+			, [Schwarz]	= 0
+		WHERE [Label] = 'Anzahl Freibauern:'
+	END
+	ELSE
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= NULL
+			, [Schwarz]	= NULL
+		WHERE [Label] = 'Anzahl Freibauern:'
+	END
+
+
+
+		
+	-- Es sollen die Quantitaet und Qualitaet der Bauernketten(n) bewertet werden
+	IF (SELECT [ZuberechnenBauernkette] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
+			INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
+			WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= 0
+			, [Schwarz]	= 0
+		WHERE [Label] = 'Laenge Bauernketten:'
+	END
+	ELSE
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= NULL
+			, [Schwarz]	= NULL
+		WHERE [Label] = 'Laenge Bauernketten:'
+	END
+
+
+
 
 	-- Aus allen Einzelmessungen ist nun ein Gesamtwert zu bilden
 	UPDATE [Statistik].[Stellungsbewertung]
