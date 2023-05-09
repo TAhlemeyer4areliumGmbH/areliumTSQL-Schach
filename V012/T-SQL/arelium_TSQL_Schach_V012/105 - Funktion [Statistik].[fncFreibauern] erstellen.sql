@@ -85,14 +85,38 @@ AS
 BEGIN
 	DECLARE @RueckgabeWert AS INTEGER
 
+		;WITH [cteSchwarz] ([Reihe], [Spalte])
+		AS
+			(
+				SELECT ISNULL(MAX([Weg].[Reihe]), 0) AS [Reihe], [Weg].[Spalte]
+				FROM [Infrastruktur].[Spielbrett] AS [Weg]
+				WHERE 1 = 1
+					AND [Weg].[FigurBuchstabe]	= 'B'
+					AND [Weg].[IstSpielerWeiss]	= 'FALSE'
+				GROUP BY [Weg].[Spalte]
+			)
+
 	SET @RueckgabeWert = 
 		(
-			SELECT 	
-				SUM(ABS((([IstSpielerWeiss] + 1) % 2)	* 8 - [Reihe] + [IstSpielerWeiss])) AS [Fortschritt]
-			FROM @Bewertungsstellung
+
+		SELECT ISNULL(MAX([Weiss].[Reihe]), 8) AS [Reihe], [Weiss].[Spalte]
+			FROM [Infrastruktur].[Spielbrett] AS [Weiss]
+			INNER JOIN [cteSchwarz]	AS [Schwarz]									-- gleiche Spalte
+				ON 1 = 1
+					AND [Weiss].[Spalte]	= [Schwarz].[Spalte]
+					AND [Weiss].[Reihe]		< [Schwarz].[Reihe]
+			--INNER JOIN [cteSchwarz]	AS [SchwarzLinks]								-- Spalte links
+			--	ON 1 = 1
+			--		AND [Weiss].[Spalte]	= CHAR(ASCII([SchwarzLinks].[Spalte]) + 1)
+			--		AND [Weiss].[Reihe]		< [SchwarzLinks].[Reihe]
+			--INNER JOIN [cteSchwarz]	AS [SchwarzRechts]								-- Spalte rechts
+			--	ON 1 = 1
+			--		AND [Weiss].[Spalte]	= CHAR(ASCII([SchwarzRechts].[Spalte]) - 1)
+			--		AND [Weiss].[Reihe]		< [SchwarzRechts].[Reihe]
 			WHERE 1 = 1
-				AND [IstSpielerWeiss]	= @IstSpielerWeiss
-				AND [FigurBuchstabe]	= 'B'
+				AND [Weiss].[FigurBuchstabe]	= 'B'
+				AND [Weiss].[IstSpielerWeiss]	= 'TRUE'
+			GROUP BY [Weiss].[Spalte]
 		)
 
 	RETURN @RueckgabeWert 
