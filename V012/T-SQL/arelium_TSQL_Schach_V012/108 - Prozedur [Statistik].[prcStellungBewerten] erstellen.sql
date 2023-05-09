@@ -193,25 +193,25 @@ BEGIN
 	END
 
 		
-	------ Es sollen der Bauernvormarsch bewertet werden
-	--IF (SELECT [ZuberechnenBauernvormarsch] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
-	--		INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
-	--		WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
-	--BEGIN
-	--	UPDATE [Statistik].[Stellungsbewertung]
-	--	SET 
-	--			[Weiss]	= 1234
-	--		, [Schwarz]	= 1234
-	--	WHERE [Label] = 'Bauernvormarsch:'
-	--END
-	--ELSE
-	--BEGIN
-	--	UPDATE [Statistik].[Stellungsbewertung]
-	--	SET 
-	--			[Weiss]	= NULL
-	--		, [Schwarz]	= NULL
-	--	WHERE [Label] = 'Bauernvormarsch:'
-	--END
+	-- Es sollen der Bauernvormarsch bewertet werden
+	IF (SELECT [ZuberechnenBauernvormarsch] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
+			INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
+			WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= [Statistik].[fncBauernvormarsch]('TRUE', @ASpielbrett)
+			, [Schwarz]	= [Statistik].[fncBauernvormarsch]('FALSE', @ASpielbrett)
+		WHERE [Label] = 'Bauernvormarsch:'
+	END
+	ELSE
+	BEGIN
+		UPDATE [Statistik].[Stellungsbewertung]
+		SET 
+				[Weiss]	= NULL
+			, [Schwarz]	= NULL
+		WHERE [Label] = 'Bauernvormarsch:'
+	END
 
 
 		
