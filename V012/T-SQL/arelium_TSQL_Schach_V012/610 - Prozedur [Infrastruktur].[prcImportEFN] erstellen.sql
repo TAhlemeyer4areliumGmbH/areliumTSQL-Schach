@@ -2,17 +2,14 @@
 -- ### arelium_TSQL_Schach_V012 ##############################################################
 -- ### Das Spiel der Koenige - Projektversion ################################################
 -- ###########################################################################################
--- ### Einlesen der Grossmeisterpartien fuer die Eroeffnungsbibliothek                     ###
+-- ### Importieren einer Stellung ueber die EFN-Notation                                   ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### Dieses Programm kann Dateien im Format PGN im BULK-Verfahren einlesen und die dort  ###
--- ### gespeicherten Informationen zu Analysezwecken und/oder nutzen, um dem Computer-     ###
--- ### gegner auf Grossmeisterniveau zu heben. Unkommentierte Partiemittschnitte lassen    ###
--- ### kostenfrei aus dem Internet herunterladen. Derartige Textdateien bestehen aus einem ###
--- ### Metateil mit Partieinformationen (wer gegen wen, wann und wo gespielt, ...) und der ###
--- ### "kurzen Notation" der gesamten Partie. Diese Daten sind sauber zu trennen und dann  ###
--- ### aufzubereiten, so dass sie spaeter in Tabellenform abgefragt werden koennen.        ###
--- ###                                                                                     ###
--- ### Das Script ist bzgl. der Ablagepfade zu den einzulesenden Dateien anzupassen!       ###
+-- ### Es wird ein EFN-String eingelesen und die dort enhaltenen Informationen werden in   ###
+-- ### eine konkrete Stellung ueberfuehrt. Die EFN Notation enthaelt dabei nicht nur die   ###
+-- ### Positionen der einzelnen Figuren sondern auch weitere Meta-Angaben. So kann man     ###
+-- ### anhand der EFN-Notation auch beurteilen, ob ein "en passant"-Schlag als naechste    ###
+-- ### Aktion erlaubt ist, ob man noch das Recht zu einer langen/kurzen Rochade hat oder   ###
+-- ### er am Zug ist. Einzelheiten: https://www.embarc.de/fen-forsyth-edwards-notation/    ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Sicherheitshinweis:                                                                 ###
 -- ###      Ueber diese Befehlssammlung werden Datenbankobjekte angelegt, geaendert oder   ###
@@ -29,7 +26,7 @@
 -- ###      stand und steht (https://www.db-berater.de/).                                  ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Aenderungsnachweis:                                                                 ###
--- ###     1.00.0	2023-04-17	Torsten Ahlemeyer                                          ###
+-- ###     1.00.0	2023-02-07	Torsten Ahlemeyer                                          ###
 -- ###              Initiale Erstellung mit Default-Werten                                 ###
 -- ###########################################################################################
 -- ### COPYRIGHT-Hinweis (siehe https://creativecommons.org/licenses/by-nc-sa/3.0/de/)     ###
@@ -61,6 +58,8 @@ INSERT INTO #Start (StartTime) VALUES (GETDATE())
 --------------------------------------------------------------------------------------------------
 -- Kompatiblitaetsblock --------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
+
+-- auf die Projekt-DB wechseln
 USE [arelium_TSQL_Schach_V012]
 GO
 
@@ -74,68 +73,140 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
--- ------------------------------------------------------------------------------
--- --- Gesammelte Grossmeisterpartien von Emanuel Lasker einlesen
--- ------------------------------------------------------------------------------
-DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
-DECLARE @MaxZaehler						INTEGER
+-----------------------------
+-- Aufraeumarbeiten ---------
+-----------------------------
 
---SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Lasker.pgn'
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Lasker.pgn'
-SET @MaxZaehler					= 20
+-- -----------------------------------------------------------------------------------------
+-- Aufbauarbeiten
+-- -----------------------------------------------------------------------------------------
+ 
 
-EXECUTE [Bibliothek].[prcImportPGN] 
-   @KompletterDateiAblagepfad
-  ,@MaxZaehler
+CREATE OR ALTER PROCEDURE [Infrastruktur].[prcImportEFN]
+	  @EFN								AS VARCHAR(255)
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+	DECLARE @StellungsString		AS VARCHAR(64)
+	DECLARE @Schleife				AS TINYINT
+	DECLARE @Stringteil				AS VARCHAR(8)
+	DECLARE @ID						AS TINYINT
+	DECLARE @Zeichen				AS CHAR(1)
+	DECLARE @IstSpielerWeiss		AS BIT
+
+	SET @StellungsString = LEFT(@EFN, CHARINDEX(' ', @EFN))
+	
+	SELECT 
+		  9 - ROW_NUMBER() OVER (ORDER BY GETDATE()) AS [ID]
+		, [Value]
+	INTO #TempStellung
+	FROM STRING_SPLIT(@StellungsString, '/');
+
+
+	CREATE TABLE #TempStellung2([ID] TINYINT NOT NULL, [Stellung] [VARCHAR](8) NOT NULL) 
+
+	DECLARE curEFN CURSOR FOR   
+		SELECT [ID], [Value]
+		FROM #TempStellung
+		ORDER BY [ID] DESC;  
+
+	OPEN curEFN
+  
+	FETCH NEXT FROM curEFN INTO @ID, @Stringteil
+	WHILE @@FETCH_STATUS = 0  
+	BEGIN 
+		SET @StellungsString	= ''
+		SET @Schleife			= 1
+		WHILE @Schleife <= 8
+		BEGIN
+			SET @Zeichen			= SUBSTRING(@Stringteil, 1, 1)
+
+			IF ISNUMERIC(@Zeichen) = 1
+			BEGIN
+				SET @StellungsString	= @StellungsString + REPLICATE('$', CONVERT(TINYINT, @Zeichen))
+				SET @Schleife			= @Schleife + CONVERT(TINYINT, @Zeichen) 
+			END
+			ELSE
+			BEGIN
+				SET @StellungsString	= @StellungsString + @Zeichen
+				SET @Schleife			= @Schleife + 1
+			END
+
+			SET @Stringteil = RIGHT(@Stringteil, LEN(@Stringteil) - 1)
+
+		END		
+
+		INSERT INTO #TempStellung2([ID], [Stellung])
+		SELECT @ID, @StellungsString
+
+		FETCH NEXT FROM curEFN INTO @ID, @Stringteil
+	END
+	CLOSE curEFN;  
+	DEALLOCATE curEFN; 
+
+	SELECT * FROM #TempStellung2
+
+	DECLARE curImoprt CURSOR FOR   
+		SELECT [ID], [Stellung]
+		FROM #TempStellung2
+		ORDER BY [ID] DESC;  
+
+	OPEN curImoprt
+  
+	FETCH NEXT FROM curImoprt INTO @ID, @Stringteil
+	WHILE @@FETCH_STATUS = 0  
+	BEGIN 
+		SET @StellungsString	= ''
+		SET @Schleife			= 1
+		WHILE @Schleife <= 8
+		BEGIN
+			SET @Zeichen			= LEFT(@Stringteil, 1)
+
+			IF @Zeichen = '$'
+			BEGIN
+				SET @IstSpielerWeiss = NULL
+			END
+			ELSE
+			BEGIN
+				IF @Zeichen <> @Zeichen COLLATE Latin1_General_CS_AI
+				BEGIN
+					SET @IstSpielerWeiss = 'TRUE'
+				END
+				ELSE
+				BEGIN
+					SET @IstSpielerWeiss = 'FALSE'
+				END
+			END
+
+			UPDATE [Infrastruktur].[Spielbrett]
+			SET	  [IstSpielerWeiss]		= @IstSpielerWeiss
+				, [FigurBuchstabe]		= (SELECT	CASE @Zeichen
+														WHEN '$'		THEN '?'
+														WHEN 'r' OR 'R'	THEN 'T'
+														WHEN 'p' OR 'P'	THEN 'B'
+													END
+											)
+			WHERE [Feld] = (@ID - 1) * 8 + @Schleife
+
+			SET @Schleife			= @Schleife + 1
+			SET @Stringteil = RIGHT(@Stringteil, LEN(@Stringteil) - 1)
+
+		END		
+
+		INSERT INTO #TempStellung2([ID], [Stellung])
+		SELECT @ID, @StellungsString
+
+		FETCH NEXT FROM curImoprt INTO @ID, @Stringteil
+	END
+	CLOSE curImoprt;  
+	DEALLOCATE curImoprt; 
+
+
+	DROP TABLE #TempStellung
+	DROP TABLE #TempStellung2
+END
 GO
-
--- ------------------------------------------------------------------------------
--- --- Gesammelte Grossmeisterpartien von Uwe Huebner einlesen
--- ------------------------------------------------------------------------------
-DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
-DECLARE @MaxZaehler						INTEGER
-
---SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Huebner.pgn'
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Huebner.pgn'
-SET @MaxZaehler					= 20
-
-EXECUTE [Bibliothek].[prcImportPGN] 
-   @KompletterDateiAblagepfad
-  ,@MaxZaehler
-GO
-
--- ------------------------------------------------------------------------------
--- --- Gesammelte Grossmeisterpartien von Gari Kasparov einlesen
--- ------------------------------------------------------------------------------
-DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
-DECLARE @MaxZaehler						INTEGER
-
---SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Kasparov.pgn'
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Kasparov.pgn'
-SET @MaxZaehler					= 20
-
-EXECUTE [Bibliothek].[prcImportPGN] 
-   @KompletterDateiAblagepfad
-  ,@MaxZaehler
-GO
-
-
--- ------------------------------------------------------------------------------
--- --- Gesammelte Grossmeisterpartien von Anatoli Karpov einlesen
--- ------------------------------------------------------------------------------
-DECLARE @KompletterDateiAblagepfad		VARCHAR(255)
-DECLARE @MaxZaehler						INTEGER
-
---SET @KompletterDateiAblagepfad	= 'D:\Beruf\arelium\GitHub_global\areliumTSQL-Schach\V012\PNGs\Karpov.pgn'
-SET @KompletterDateiAblagepfad	= 'C:\arelium_Repos\areliumTSQL-Schach\V012\PNGs\Karpov.pgn'
-SET @MaxZaehler					= 20
-
-EXECUTE [Bibliothek].[prcImportPGN] 
-   @KompletterDateiAblagepfad
-  ,@MaxZaehler
-GO
-
-
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -144,10 +215,27 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @Ende		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Zeit		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Skript		VARCHAR(100)	= '212 - Grossmeisterpartien einlesen.sql'
+DECLARE @Skript		VARCHAR(100)	= '610 - Prozedur [Infrastruktur].[prcImportEFN] erstellen.sql'
 PRINT ' '
 PRINT 'Skript     :   ' + @Skript
 PRINT 'Ende       :   ' + @Ende
 PRINT 'Zeit       :   ' + @Zeit
 SELECT @Skript AS Skript, @Ende AS Ende, @Zeit AS Zeit
 GO
+
+
+/*
+
+USE [arelium_TSQL_Schach_V012]
+GO
+
+DECLARE @EFN varchar(255)
+
+--SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+SET @EFN = '6r1/6pp/7r/1B5K/1P3k2/N7/3R4/8 w - - 30 79'
+
+EXECUTE [Infrastruktur].[prcImportEFN] @EFN
+GO
+
+*/
+ 

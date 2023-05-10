@@ -152,7 +152,7 @@ BEGIN
 	END
 
 	
-	------ Es sollen die Schlagmoeglichkeiten gezaehlt werden
+	-- Es sollen die Schlagmoeglichkeiten gezaehlt werden
 	--IF (SELECT [ZuberechnenAnzahlSchlagmoeglichkeiten] FROM [Infrastruktur].[Spielstaerke] AS [SST] 
 	--		INNER JOIN [Spiel].[Konfiguration] AS [KON] ON [SST].[SpielstaerkeID] = [KON].[SpielstaerkeID]
 	--		WHERE [KON].[IstSpielerWeiss] = [Spiel].[fncIstWeissAmZug]()) = 'TRUE'
@@ -222,8 +222,8 @@ BEGIN
 	BEGIN
 		UPDATE [Statistik].[Stellungsbewertung]
 		SET 
-				[Weiss]	= 0
-			, [Schwarz]	= 0
+				[Weiss]	= [Statistik].[fncFreibauern]('TRUE', @ASpielbrett)
+			, [Schwarz]	= [Statistik].[fncFreibauern]('FALSE', @ASpielbrett)
 		WHERE [Label] = 'Anzahl Freibauern:'
 	END
 	ELSE

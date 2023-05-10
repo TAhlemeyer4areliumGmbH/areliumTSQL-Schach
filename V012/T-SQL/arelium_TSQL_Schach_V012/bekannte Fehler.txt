@@ -1,5 +1,8 @@
 Folgende Fehler / fehlende Implementierungen sind aktuell bekannt:
 
+
+
+
 Ein doppeltes Schachgebot wird nicht sicher als solches erkannt - was zu folgenden Phaenomenen fuehrt:
   1) Die Notation stimmt nicht. Bspw. wird ein #-Zeichen (matt) anstelle eines "++"-Zeichens notiert
   2) Im folgenden Halbzug werden mehr Zuege erlaubt, als die Regeln hergeben. Laut Regeln duerfen aber 
@@ -16,9 +19,13 @@ weitere Parameter wie Zahl der noch erlaubten Rochaden, die verbliebene Restzeit
 Im Spiel T-SQL vs T-SQL fiel auf, dass der Koenig sich noch selber aktiv ins Schach gegenueber einem 
 feindlichen Bauern begeben kann.
 
-
 Die Tabelle [MoeglicheAktionen] enthaelt noch Aktionen von Figuren, die eigentlich aufgrund einer 
 Fesselung nicht ziehen duerfen
+
+die "Anzahl der Schlaege" ist als Wertungskriterium fein zu justieren und einzubauen
+
+Es soll einen Editor für Stellungen geben. Hier ist die FEN einzufuehren: https://www.embarc.de/fen-forsyth-edwards-notation/
+
 
 
 
