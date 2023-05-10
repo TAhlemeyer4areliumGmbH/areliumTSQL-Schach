@@ -2,16 +2,17 @@
 -- ### arelium_TSQL_Schach_V012 ##############################################################
 -- ### Das Spiel der Koenige - Projektversion ################################################
 -- ###########################################################################################
--- ### Ueberpruefen, ob eine Feld aktuell bedroht ist                                      ###
+-- ### Ueberpruefen, ob eine Bauer ein Freibauer ist                                       ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### Diese Funktion prueft fuer einen Spieler, ob er im naechste Zug ein vergegebenes    ###
--- ### Feld regelkonform erreichen (im Sinne von "schlagen" - nicht "ziehen"!) kann.       ###
+-- ### Diese Funktion prueft fuer einen Spieler, ob ein bestimmter seiner Bauern ein       ###
+-- ### Freibauer ist. Dabei handelt es sich um Figuren, die nicht mher durch gegnerische   ###
+-- ### Bauern auf ihrem Weg zur feindlichen Grundlinie aufgehalten werden koennen. Sie     ###
+-- ### haben also keinen andersfarbigen Bauern mehr vor sich (wuerde den Bauern blocken)   ###
+-- ### oder diagonal nach vorne in den direkt benachbarten Spalten.                        ###
 -- ###                                                                                     ###
--- ### Hierzu wird die Funktion [Spiel].[frcMoeglicheAktionen] genutzt. Uebergeben wird    ###
--- ### der Spieler, der evtl. das Feld bedroht. Eine positive Antwort bedeutet, dass das   ###
--- ### Feld bedroht ist. Diese Funktion ist zur Funktion [Spiel].[frcSpielerStehtImSchach] ###
--- ### weiterzuentwickeln, indem das zu ueberprufende Feld zwingend das Feld des eigenen   ###
--- ### Koenigs ist.                                                                        ###
+-- ### Freibauern sind sehr maechtig. Sie verwandeln sich oft in andere Figuren, bspw.     ###
+-- ### eine Dame. Oft ist der Gegner daher gezwungen eine wertvolle Figur zu opfern, um    ###
+-- ### den Bauern noch rechtzeitig abzufangen.                                             ###
 -- ###                                                                                     ###
 -- ### Am Ende dieses Block gibt es eine (auskommentierte) Testroutine, mit der man fuer   ###
 -- ### eine uebergebene Stellung testen kann, ob ein (nicht) angegriffenes Feld korrekt    ###
@@ -89,11 +90,11 @@ GO
 -- Aufbauarbeiten -----------
 -----------------------------
 
--- Diese Funktion wertet die moeglichen Zuege in diser Stellung aus, um festzustellen, ob ein
--- bestimmtes Feld gerade angreifbar ist oder nicht
-CREATE OR ALTER FUNCTION [Spiel].[fncIstFeldBedroht]
+-- Diese Funktion prueft fuer einen uebergebenen Bauern, ob in seinem Weg oder diagonal
+-- nach vorne gerichtet in einer Spalte Abstand ein gegnerischer Bauer steht
+CREATE OR ALTER FUNCTION [Spiel].[fncIstBauerEinFreibauer]
 (
-	   @IstAngriffsspielerWeiss			AS BIT
+	   @IstSpielerWeiss					AS BIT
 	 , @Bewertungsstellung				AS typStellung			READONLY
 	 , @ZuBeurteilendesFeld				AS TINYINT
 )
@@ -102,11 +103,41 @@ AS
 BEGIN
 	DECLARE @Ergebnis					AS BIT
 
-	IF EXISTS (
-		SELECT * 
-		FROM [Spiel].[fncMoeglicheAktionen](@IstAngriffsspielerWeiss, @Bewertungsstellung)
-		WHERE 1 = 1
-			AND [ZielFeld] = @ZuBeurteilendesFeld
+	IF 
+		(
+			NOT EXISTS (
+				SELECT * 
+				FROM @Bewertungsstellung
+				WHERE 1 = 1
+					AND [Spalte] BETWEEN 
+						(SELECT CHAR(ASCII([Spalte]) - 1) FROM @Bewertungsstellung WHERE [Feld] = @ZuBeurteilendesFeld)
+						AND 
+						(SELECT CHAR(ASCII([Spalte]) + 1) FROM @Bewertungsstellung WHERE [Feld] = @ZuBeurteilendesFeld)
+					AND [Reihe] BETWEEN 
+						(SELECT ([Reihe] + 1) FROM @Bewertungsstellung WHERE [Feld] = @ZuBeurteilendesFeld)
+						AND 7
+					AND [IstSpielerWeiss]	= 'FALSE'
+					AND [FigurBuchstabe]	= 'B'
+				)
+			AND @IstSpielerWeiss = 'TRUE'
+		)
+		OR
+		(
+			NOT EXISTS (
+				SELECT * 
+				FROM @Bewertungsstellung
+				WHERE 1 = 1
+					AND [Spalte] BETWEEN 
+						(SELECT CHAR(ASCII([Spalte]) - 1) FROM @Bewertungsstellung WHERE [Feld] = @ZuBeurteilendesFeld)
+						AND 
+						(SELECT CHAR(ASCII([Spalte]) + 1) FROM @Bewertungsstellung WHERE [Feld] = @ZuBeurteilendesFeld)
+					AND [Reihe] BETWEEN 
+						2 AND 
+						(SELECT ([Reihe] - 1) FROM @Bewertungsstellung WHERE [Feld] = @ZuBeurteilendesFeld)
+					AND [IstSpielerWeiss]	= 'TRUE'
+					AND [FigurBuchstabe]	= 'B'
+				)
+			AND @IstSpielerWeiss = 'FALSE'
 		)
 	BEGIN
 		SET @Ergebnis = 'TRUE'
@@ -127,7 +158,7 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @Ende		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Zeit		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Skript		VARCHAR(100)	= '085 - Funktion [Spiel].[fncIstFeldBedroht] erstellen.sql'
+DECLARE @Skript		VARCHAR(100)	= '105 - Funktion [Spiel].[fncIstBauerEinFreibauer] erstellen.sql'
 PRINT ' '
 PRINT 'Skript     :   ' + @Skript
 PRINT 'Ende       :   ' + @Ende
@@ -138,17 +169,16 @@ GO
 
 
 /*
--- Test der Funktion [Spiel].[fncIstFeldBedroht]
+-- Test der Funktion [Spiel].[fncIstBauerEinFreibauer]()
 use [arelium_TSQL_Schach_V012]
 go
 
-DECLARE @IstAngriffsspielerWeiss		AS BIT
+DECLARE @IstSpielerWeiss				AS BIT
 DECLARE @Bewertungsstellung				AS [dbo].[typStellung]
-DECLARE @Zielfeld						AS TINYINT
+DECLARE @ZuBeurteilendesFeld			AS TINYINT
 
-SET @IstAngriffsspielerWeiss			= 'FALSE'
-SET @Zielfeld							= 56
-
+SET @IstSpielerWeiss					= 'FALSE'
+SET @ZuBeurteilendesFeld				= 55
 INSERT INTO @Bewertungsstellung
 	SELECT 
 		  1								AS [VarianteNr]
@@ -162,7 +192,7 @@ INSERT INTO @Bewertungsstellung
 	FROM [Infrastruktur].[Spielbrett]	AS [SB]
 
 
-SELECT [Spiel].[fncIstFeldBedroht](@IstAngriffsspielerWeiss, @Bewertungsstellung, @Zielfeld)
+SELECT [Spiel].[fncIstBauerEinFreibauer](@IstSpielerWeiss, @Bewertungsstellung, @ZuBeurteilendesFeld)
 
 GO
 */

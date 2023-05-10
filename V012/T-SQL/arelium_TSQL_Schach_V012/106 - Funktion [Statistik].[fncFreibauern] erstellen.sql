@@ -83,41 +83,33 @@ CREATE OR ALTER FUNCTION [Statistik].[fncFreibauern]
 RETURNS INTEGER
 AS
 BEGIN
-	DECLARE @RueckgabeWert AS INTEGER
+	DECLARE @RueckgabeWert		AS INTEGER
+	DECLARE @Bauernfeld			AS TINYINT
 
-		;WITH [cteSchwarz] ([Reihe], [Spalte])
-		AS
-			(
-				SELECT ISNULL(MAX([Weg].[Reihe]), 0) AS [Reihe], [Weg].[Spalte]
-				FROM [Infrastruktur].[Spielbrett] AS [Weg]
-				WHERE 1 = 1
-					AND [Weg].[FigurBuchstabe]	= 'B'
-					AND [Weg].[IstSpielerWeiss]	= 'FALSE'
-				GROUP BY [Weg].[Spalte]
-			)
+	SET @RueckgabeWert = 0
 
-	SET @RueckgabeWert = 
-		(
+	-- Es werden alle auf dem Brett befindlichen Bauern der gewuenschten Farbe ermittelt. Fuer jeden 
+	-- so gefundenen Bauern wird nun geguckt, ob es sich um einen Freibauarn handelt. Die Summe
+	-- aller positiven Funde ist der Rueckgabewert dieser Funktion
+	DECLARE curFreibauern CURSOR FOR   
+		SELECT DISTINCT [Feld]
+		FROM @Bewertungsstellung
+		WHERE 1 = 1
+			AND [FigurBuchstabe]	= 'B'
+			AND [IstSpielerWeiss]	= @IstSpielerWeiss
+		ORDER BY [Feld];  
 
-		SELECT ISNULL(MAX([Weiss].[Reihe]), 8) AS [Reihe], [Weiss].[Spalte]
-			FROM [Infrastruktur].[Spielbrett] AS [Weiss]
-			INNER JOIN [cteSchwarz]	AS [Schwarz]									-- gleiche Spalte
-				ON 1 = 1
-					AND [Weiss].[Spalte]	= [Schwarz].[Spalte]
-					AND [Weiss].[Reihe]		< [Schwarz].[Reihe]
-			--INNER JOIN [cteSchwarz]	AS [SchwarzLinks]								-- Spalte links
-			--	ON 1 = 1
-			--		AND [Weiss].[Spalte]	= CHAR(ASCII([SchwarzLinks].[Spalte]) + 1)
-			--		AND [Weiss].[Reihe]		< [SchwarzLinks].[Reihe]
-			--INNER JOIN [cteSchwarz]	AS [SchwarzRechts]								-- Spalte rechts
-			--	ON 1 = 1
-			--		AND [Weiss].[Spalte]	= CHAR(ASCII([SchwarzRechts].[Spalte]) - 1)
-			--		AND [Weiss].[Reihe]		< [SchwarzRechts].[Reihe]
-			WHERE 1 = 1
-				AND [Weiss].[FigurBuchstabe]	= 'B'
-				AND [Weiss].[IstSpielerWeiss]	= 'TRUE'
-			GROUP BY [Weiss].[Spalte]
-		)
+	OPEN curFreibauern
+  
+	FETCH NEXT FROM curFreibauern INTO @Bauernfeld
+	WHILE @@FETCH_STATUS = 0  
+	BEGIN 
+		SET @RueckgabeWert = @RueckgabeWert + (SELECT [Spiel].[fncIstBauerEinFreibauer](@IstSpielerWeiss, @Bewertungsstellung, @Bauernfeld))
+
+		FETCH NEXT FROM curFreibauern INTO @Bauernfeld 
+	END
+	CLOSE curFreibauern;  
+	DEALLOCATE curFreibauern; 
 
 	RETURN @RueckgabeWert 
 
@@ -130,7 +122,7 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @Ende		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Zeit		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Skript		VARCHAR(100)	= '105 - Funktion [Statistik].[fncFreibauern] erstellen.sql'
+DECLARE @Skript		VARCHAR(100)	= '106 - Funktion [Statistik].[fncFreibauern] erstellen.sql'
 PRINT ' '
 PRINT 'Skript     :   ' + @Skript
 PRINT 'Ende       :   ' + @Ende
