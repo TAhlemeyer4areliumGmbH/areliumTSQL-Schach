@@ -94,13 +94,17 @@ BEGIN
 	DECLARE @ID						AS TINYINT
 	DECLARE @Zeichen				AS CHAR(1)
 	DECLARE @IstSpielerWeiss		AS BIT
+	DECLARE @EnPassantFeld			AS TINYINT
+	DECLARE @FuenfzigZuegeRegel		AS TINYINT
+	DECLARE @Zugzahl				AS INTEGER
 
 	-- --------------------------------------------------------------
 	-- Schritt 1: 8 Reihen im EFN-String 
 	-- --------------------------------------------------------------
 
 	-- aus dem EFN-String werden die Brettangaben extrahiert
-	SET @StellungsString = LEFT(@EFN, CHARINDEX(' ', @EFN))
+	SET @StellungsString	= LEFT(@EFN, CHARINDEX(' ', @EFN))
+	SET @EFN				= TRIM(RIGHT(@EFN, LEN(@EFN) - LEN(@StellungsString)))
 
 	-- Brett mit Grundtsellung aufbauen
 	EXECUTE [Spiel].[prcInitialisierung] 
@@ -255,12 +259,122 @@ BEGIN
 	END
 	CLOSE curImoprt;  
 	DEALLOCATE curImoprt; 
-
-
+	
 	DROP TABLE #TempStellung
 	DROP TABLE #TempStellung2
 
+	-- --------------------------------------------------------------
+	-- Schritt 4: Notation und damit das Zugrecht anpassen
+	-- --------------------------------------------------------------
+
+	INSERT INTO [Spiel].[Notation]
+        ([VollzugID]
+        ,[IstSpielerWeiss]
+        ,[TheoretischeAktionenID]
+        ,[LangeNotation]
+        ,[KurzeNotationEinfach]
+        ,[KurzeNotationKomplex]
+        ,[ZugIstSchachgebot])
+	VALUES
+        (0, 1, (SELECT MIN([TheoretischeAktionenID]) FROM [Infrastruktur].[TheoretischeAktionen]), 'EFN', 'EFN', 'EFN', 'FALSE')
+
+	IF LEFT(@EFN, 1) = 'w'
+	BEGIN
+		INSERT INTO [Spiel].[Notation]
+           ([VollzugID]
+           ,[IstSpielerWeiss]
+           ,[TheoretischeAktionenID]
+           ,[LangeNotation]
+           ,[KurzeNotationEinfach]
+           ,[KurzeNotationKomplex]
+           ,[ZugIstSchachgebot])
+		VALUES
+           (0, 0, (SELECT MIN([TheoretischeAktionenID]) FROM [Infrastruktur].[TheoretischeAktionen]), 'EFN', 'EFN', 'EFN', 'FALSE')
+	END
+
+	-- --------------------------------------------------------------
+	-- Schritt 5: Rochaderecht beachten
+	-- --------------------------------------------------------------
+
+	SET @EFN			= RIGHT(@EFN, LEN(@EFN) - 2)
+	SET @Stringteil		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
+	SET @EFN			= RIGHT(@EFN, LEN(@EFN) - CHARINDEX(' ', @EFN, 1))
+
+	UPDATE [Spiel].[Konfiguration]
+	SET   [IstKurzeRochadeErlaubt] = 'FALSE'
+		, [IstLangeRochadeErlaubt] = 'FALSE'
+
+	IF CHARINDEX('k' COLLATE Latin1_General_CS_AI, @Stringteil, 1) <> 0
+	BEGIN
+		UPDATE [Spiel].[Konfiguration]
+		SET   [IstKurzeRochadeErlaubt]	= 'TRUE'
+		WHERE [IstSpielerWeiss]			= 'FALSE'
+	END
+
+	IF CHARINDEX('K' COLLATE Latin1_General_CS_AI, @Stringteil, 1) <> 0
+	BEGIN
+		UPDATE [Spiel].[Konfiguration]
+		SET   [IstKurzeRochadeErlaubt]	= 'TRUE'
+		WHERE [IstSpielerWeiss]			= 'TRUE'
+	END
+
+	IF CHARINDEX('q' COLLATE Latin1_General_CS_AI, @Stringteil, 1) <> 0
+	BEGIN
+		UPDATE [Spiel].[Konfiguration]
+		SET   [IstLangeRochadeErlaubt]	= 'TRUE'
+		WHERE [IstSpielerWeiss]			= 'FALSE'
+	END
+
+	IF CHARINDEX('Q' COLLATE Latin1_General_CS_AI, @Stringteil, 1) <> 0
+	BEGIN
+		UPDATE [Spiel].[Konfiguration]
+		SET   [IstLangeRochadeErlaubt]	= 'TRUE'
+		WHERE [IstSpielerWeiss]			= 'TRUE'
+	END
+	
+	-- --------------------------------------------------------------
+	-- Schritt 6: en-passant beachten
+	---- --------------------------------------------------------------
+
+	SET @Stringteil		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
+	SET @EFN			= RIGHT(@EFN, LEN(@EFN) - CHARINDEX(' ', @EFN, 1))
+
+	IF @Stringteil = '-'
+	BEGIN
+		SET @EnPassantFeld = NULL
+	END
+	ELSE
+	BEGIN
+		SET @EnPassantFeld = (	SELECT [Feld]
+								FROM [Infrastruktur].[Spielbrett]
+								WHERE 1 = 1
+									AND [Spalte]	= LEFT(@Stringteil, 1)
+									AND [Reihe]		= RIGHT(@Stringteil, 1)
+							)
+	END
+	
+	-- --------------------------------------------------------------
+	-- Schritt 7: 50-Zuege-Regel
+	---- --------------------------------------------------------------
+
+	SET @Stringteil		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
+	SET @EFN			= RIGHT(@EFN, LEN(@EFN) - CHARINDEX(' ', @EFN, 1))
+
+	SET @FuenfzigZuegeRegel = CONVERT(TINYINT, @Stringteil)
+	
+	-- --------------------------------------------------------------
+	-- Schritt 8: Zugzahl
+	---- --------------------------------------------------------------
+
+	SET @Stringteil		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
+
+	SET @Zugzahl		= CONVERT(INTEGER, @Stringteil)
+
+	SELECT @Zugzahl
 	SELECT * FROM [Infrastruktur].[vSpielbrett]
+	SELECT @EFN
+	SELECT @Stringteil
+
 END
 GO
 
