@@ -95,14 +95,39 @@ BEGIN
 	DECLARE @Zeichen				AS CHAR(1)
 	DECLARE @IstSpielerWeiss		AS BIT
 
+	-- --------------------------------------------------------------
+	-- Schritt 1: 8 Reihen im EFN-String 
+	-- --------------------------------------------------------------
+
+	-- aus dem EFN-String werden die Brettangaben extrahiert
 	SET @StellungsString = LEFT(@EFN, CHARINDEX(' ', @EFN))
+
+	-- Brett mit Grundtsellung aufbauen
+	EXECUTE [Spiel].[prcInitialisierung] 
+		@NameWeiss							= 'WEISS'
+	  , @NameSchwarz						= 'SCHWARZ'
+	  , @IstSpielerMenschWeiss				= 'TRUE'
+	  , @IstSpielerMenschSchwarz			= 'TRUE'
+	  , @SpielstaerkeWeiss					= 2
+	  , @SpielstaerkeSchwarz				= 2
+	  , @RestzeitWeissInSekunden			= 5400
+	  , @RestzeitSchwarzInSekunden			= 7200
+	  , @ComputerSchritteAnzeigenWeiss		= 'TRUE'
+	  , @ComputerSchritteAnzeigenSchwarz	= 'FALSE'
+	  , @BedienungsanleitungAnzeigen		= 'FALSE'
+
 	
+	-- ueber die SPLIT-Funktion werden die Reihen aufgeteilt
 	SELECT 
 		  9 - ROW_NUMBER() OVER (ORDER BY GETDATE()) AS [ID]
 		, [Value]
 	INTO #TempStellung
 	FROM STRING_SPLIT(@StellungsString, '/');
 
+
+	-- --------------------------------------------------------------
+	-- Schritt 2: 8 Felder je Reihe
+	-- --------------------------------------------------------------
 
 	CREATE TABLE #TempStellung2([ID] TINYINT NOT NULL, [Stellung] [VARCHAR](8) NOT NULL) 
 
@@ -145,8 +170,12 @@ BEGIN
 	CLOSE curEFN;  
 	DEALLOCATE curEFN; 
 
-	SELECT * FROM #TempStellung2
 
+	-- --------------------------------------------------------------
+	-- Schritt 3: Positionsangaben der Figuren auswerten
+	-- --------------------------------------------------------------
+
+	-- Jetzt werden die Angaben aus dem EFN-String in UPDATE-Statements gewandelt
 	DECLARE curImoprt CURSOR FOR   
 		SELECT [ID], [Stellung]
 		FROM #TempStellung2
@@ -182,13 +211,38 @@ BEGIN
 			UPDATE [Infrastruktur].[Spielbrett]
 			SET	  [IstSpielerWeiss]		= @IstSpielerWeiss
 				, [FigurBuchstabe]		= (SELECT	CASE @Zeichen
-														WHEN '$'		THEN '?'
-														WHEN 'r' OR 'R'	THEN 'T'
-														WHEN 'p' OR 'P'	THEN 'B'
+														WHEN '$' COLLATE Latin1_General_CS_AI THEN '?'
+														WHEN 'r' COLLATE Latin1_General_CS_AI THEN 'T'
+														WHEN 'R' COLLATE Latin1_General_CS_AI THEN 'T'
+														WHEN 'n' COLLATE Latin1_General_CS_AI THEN 'S'
+														WHEN 'N' COLLATE Latin1_General_CS_AI THEN 'S'
+														WHEN 'b' COLLATE Latin1_General_CS_AI THEN 'L'
+														WHEN 'B' COLLATE Latin1_General_CS_AI THEN 'L'
+														WHEN 'q' COLLATE Latin1_General_CS_AI THEN 'D'
+														WHEN 'Q' COLLATE Latin1_General_CS_AI THEN 'D'
+														WHEN 'k' COLLATE Latin1_General_CS_AI THEN 'K'
+														WHEN 'K' COLLATE Latin1_General_CS_AI THEN 'K'
+														WHEN 'p' COLLATE Latin1_General_CS_AI THEN 'B'
+														WHEN 'P' COLLATE Latin1_General_CS_AI THEN 'B'
 													END
 											)
-			WHERE [Feld] = (@ID - 1) * 8 + @Schleife
-
+				, [FigurUTF8]			= (SELECT	CASE @Zeichen
+														WHEN '$' COLLATE Latin1_General_CS_AI THEN 160
+														WHEN 'r' COLLATE Latin1_General_CS_AI THEN 9820
+														WHEN 'R' COLLATE Latin1_General_CS_AI THEN 9814
+														WHEN 'n' COLLATE Latin1_General_CS_AI THEN 9822
+														WHEN 'N' COLLATE Latin1_General_CS_AI THEN 9816
+														WHEN 'b' COLLATE Latin1_General_CS_AI THEN 9821
+														WHEN 'B' COLLATE Latin1_General_CS_AI THEN 9815
+														WHEN 'q' COLLATE Latin1_General_CS_AI THEN 9819
+														WHEN 'Q' COLLATE Latin1_General_CS_AI THEN 9813
+														WHEN 'k' COLLATE Latin1_General_CS_AI THEN 9818
+														WHEN 'K' COLLATE Latin1_General_CS_AI THEN 9812
+														WHEN 'p' COLLATE Latin1_General_CS_AI THEN 9823
+														WHEN 'P' COLLATE Latin1_General_CS_AI THEN 9817
+													END
+											)
+			WHERE [Feld] = (@Schleife - 1) * 8 + @ID
 			SET @Schleife			= @Schleife + 1
 			SET @Stringteil = RIGHT(@Stringteil, LEN(@Stringteil) - 1)
 
@@ -205,6 +259,8 @@ BEGIN
 
 	DROP TABLE #TempStellung
 	DROP TABLE #TempStellung2
+
+	SELECT * FROM [Infrastruktur].[vSpielbrett]
 END
 GO
 
