@@ -110,8 +110,11 @@ SELECT
 			+ ':'
 			END
 		WHEN 2 THEN N'Restzeit:'
+		WHEN 3 THEN N'50-Züge-Regel:'
 		WHEN 4 THEN N'Zugrecht/-pflicht:'
+		WHEN 5 THEN N'en-passant-Möglichkeit:'
 		WHEN 6 THEN N'Bewertung:'
+		WHEN 7 THEN N'50-Züge-Regel:'
 		WHEN 8 THEN N'SCHWARZ'
 			+ CASE (SELECT [SpielstaerkeID] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE') WHEN 1 THEN N'' ELSE '(Comp)'
 			+ ':'
@@ -122,8 +125,11 @@ SELECT
 	, CASE [SichtWeiss].[OrderNr]
 		WHEN 1 THEN (SELECT [Spielername] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'TRUE')
 		WHEN 2 THEN [Infrastruktur].[fncSekundenAlsUhrzeitFormatieren]((SELECT [RestzeitInSekunden] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'TRUE'))
+		WHEN 3 THEN (SELECT CONVERT(CHAR(3), [Anzahl50ZugRegel]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'TRUE')
 		WHEN 4 THEN CASE [Spiel].[fncIstWeissAmZug]() WHEN 'TRUE' THEN 'WEISS' ELSE 'SCHWARZ' END
+		WHEN 5 THEN ISNULL((SELECT [EnPassant] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = (([Spiel].[fncIstWeissAmZug]() + 1) % 2)), '')
 		WHEN 6 THEN CONVERT(VARCHAR(8), [Statistik].[fncAktuelleStellungBewerten]())
+		WHEN 7 THEN (SELECT CONVERT(CHAR(3), [Anzahl50ZugRegel]) FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE')
 		WHEN 8 THEN (SELECT [Spielername] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE')
 		WHEN 9 THEN [Infrastruktur].[fncSekundenAlsUhrzeitFormatieren]((SELECT [RestzeitInSekunden] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE'))
 		ELSE ''

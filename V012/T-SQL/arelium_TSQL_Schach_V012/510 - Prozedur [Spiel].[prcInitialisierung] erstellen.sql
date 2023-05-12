@@ -96,19 +96,20 @@ BEGIN
 	TRUNCATE TABLE [Spiel].[Konfiguration]
 
 	INSERT INTO [Spiel].[Konfiguration]
-		( [IstSpielerWeiss]
-		, [Spielername]
-		, [IstSpielerMensch]
-		, [SpielstaerkeID]
-		, [RestzeitInSekunden]
-		, [ZeitpunktLetzterZug]
-		, [ComputerSchritteAnzeigen]
-		, [IstKurzeRochadeErlaubt]
-		, [IstLangeRochadeErlaubt]
-		   )
+           ([IstSpielerWeiss]
+           ,[Spielername]
+           ,[IstSpielerMensch]
+           ,[SpielstaerkeID]
+           ,[RestzeitInSekunden]
+           ,[ZeitpunktLetzterZug]
+           ,[ComputerSchritteAnzeigen]
+           ,[IstKurzeRochadeErlaubt]
+           ,[IstLangeRochadeErlaubt]
+           ,[Anzahl50ZugRegel]
+           ,[EnPassant])
      VALUES
-		  ('FALSE'	, @NameWeiss	, @IstSpielermenschWeiss	, @SpielstaerkeWeiss	, @RestzeitWeissInSekunden		, GETDATE(), @ComputerSchritteAnzeigenWeiss		, 'TRUE', 'TRUE')
-		, ('TRUE'	, @NameSchwarz	, @IstSpielermenschSchwarz	, @SpielstaerkeSchwarz	, @RestzeitSchwarzInSekunden	, GETDATE(), @ComputerSchritteAnzeigenSchwarz	, 'TRUE', 'TRUE')
+		  ('FALSE'	, @NameWeiss	, @IstSpielermenschWeiss	, @SpielstaerkeWeiss	, @RestzeitWeissInSekunden		, GETDATE(), @ComputerSchritteAnzeigenWeiss		, 'TRUE', 'TRUE', 0, NULL)
+		, ('TRUE'	, @NameSchwarz	, @IstSpielermenschSchwarz	, @SpielstaerkeSchwarz	, @RestzeitSchwarzInSekunden	, GETDATE(), @ComputerSchritteAnzeigenSchwarz	, 'TRUE', 'TRUE', 0, NULL)
  
 	-- zuerst das aktuelle Spielbrett in eine Variable einlesen
 	DECLARE @ASpielbrett	AS [dbo].[typStellung]

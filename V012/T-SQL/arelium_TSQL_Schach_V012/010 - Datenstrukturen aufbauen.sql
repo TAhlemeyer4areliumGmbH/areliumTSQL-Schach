@@ -561,6 +561,8 @@ CREATE TABLE [Spiel].[Konfiguration]
 	, [ComputerSchritteAnzeigen]	BIT				NOT NULL
 	, [IstKurzeRochadeErlaubt]		BIT				NOT NULL
 	, [IstLangeRochadeErlaubt]		BIT				NOT NULL
+	, [Anzahl50ZugRegel]			TINYINT			NOT NULL
+	, [EnPassant]					VARCHAR(20)		NULL
 	, CONSTRAINT PK_Konfiguration_IstSpielerWeiss PRIMARY KEY CLUSTERED ([IstSpielerWeiss])
 )
 

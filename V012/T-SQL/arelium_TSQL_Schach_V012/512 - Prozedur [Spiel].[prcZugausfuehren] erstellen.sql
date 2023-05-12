@@ -436,6 +436,23 @@ BEGIN
 													PRINT 'moegliche Zuege ermitteln...'
 												END
 
+												-- die 50-Zuege-Regel beachten
+												IF 
+													(SELECT [ZugIstSchlag] FROM [Infrastruktur].[TheoretischeAktionen] WHERE @WunschzugID = [TheoretischeAktionenID]) = 'TRUE'
+													OR
+													(SELECT [FigurName] FROM [Infrastruktur].[TheoretischeAktionen] WHERE @WunschzugID = [TheoretischeAktionenID]) = 'Bauer'
+												BEGIN
+													UPDATE [Spiel].[Konfiguration]
+													SET [Anzahl50ZugRegel]	= 0
+													WHERE [IstSpielerWeiss]			= @IstSpielerWeiss
+												END
+												ELSE
+												BEGIN
+													UPDATE [Spiel].[Konfiguration]
+													SET [Anzahl50ZugRegel]	= [Anzahl50ZugRegel] + 1
+													WHERE [IstSpielerWeiss]			= @IstSpielerWeiss
+												END
+
 												-- Alle Bibliothekspartien aus der Tabelle [Bibliothek].[aktuelleNachschlageoptionen] werfen, die nicht mehr 
 												-- der aktuellen Stellung entsprechen
 												DELETE FROM [Bibliothek].[aktuelleNachschlageoptionen]

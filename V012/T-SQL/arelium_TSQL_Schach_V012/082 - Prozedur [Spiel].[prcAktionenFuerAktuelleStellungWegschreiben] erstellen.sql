@@ -226,6 +226,17 @@ BEGIN
 			   , 'TRUE')
 		END
 
+		-- wenn es "en passant"-Zuege gibt
+		IF (SELECT COUNT(*) FROM [Spiel].[MoeglicheAktionen] WHERE [LangeNotation] like '%e.p.') <> 0
+		BEGIN
+			UPDATE [Spiel].[Konfiguration]
+			SET [EnPassant] = (SELECT TOP 1 [LangeNotation] FROM [Spiel].[MoeglicheAktionen] WHERE [LangeNotation] like '%e.p.')
+		END
+		ELSE
+		BEGIN
+			UPDATE [Spiel].[Konfiguration]
+			SET [EnPassant] = NULL
+		END
 	END
 
 
