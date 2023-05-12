@@ -39,3 +39,12 @@ Zu beruecksichten ist, dass bei der Eingabe auch zu erfassen ist,
   1) wer am Zug ist
   2) ob die kurze/lange Rochade von WEISS/SCHWARZ noch erlaubt ist
 
+
+
+Stellungsbewertung:
+=================================
+1) den Rest der Bedenkzeit
+2) ein Läuferpaar ist wertvoller, als Läufer und Springer
+3) Weiß hat einen Anzugsvorteil
+4) König außerhalb des Endspiels nicht zentrumsnah
+5) ein sogenannter „Freibauer“ ist besonders wertvoll
