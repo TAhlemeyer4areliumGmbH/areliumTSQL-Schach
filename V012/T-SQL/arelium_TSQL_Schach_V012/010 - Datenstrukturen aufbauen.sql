@@ -115,6 +115,7 @@ GO
 	DROP TABLE IF EXISTS [Spiel].[Konfiguration]
 	DROP TABLE IF EXISTS [Spiel].[Zugverfolgung]
 	DROP TABLE IF EXISTS [Spiel].[Spielbrettverlauf]
+	DROP TABLE IF EXISTS [Spiel].[Suchbaum]
 	
 	DROP TABLE IF EXISTS [Statistik].[Stellungsbewertung]
 
@@ -124,9 +125,7 @@ GO
 
 	DROP TABLE IF EXISTS [Infrastruktur].[PNG_Stufe1]
 	DROP TABLE IF EXISTS [Infrastruktur].[PNG_Stufe2]
-
-	GO
-
+GO
 
 
 
@@ -326,6 +325,28 @@ CREATE TABLE [Infrastruktur].[TheoretischeAktionen](
 GO
 
 -- -----------------------------------------------------------------------------------------------------------------
+
+-- um mehrere Spielzuege im Voraus zu planen, muessen Stellungen und deren Bewertungen in verscheidenen 
+-- Suchtiefen gespeichert und analysiert werden
+CREATE TABLE [Spiel].[Suchbaum](
+      [ID]						BIGINT			NOT NULL
+    , [VorgaengerID]			BIGINT			NULL
+		CONSTRAINT FK_Suchbaum_Suchbaum FOREIGN KEY ([VorgaengerID]) REFERENCES [Spiel].[Suchbaum] ([ID])
+	, [Suchtiefe]				TINYINT			NOT NULL
+    , [Halbzug]					TINYINT			NOT NULL
+    , [TheoretischeAktionID]	BIGINT			NOT NULL
+    , [StellungID]				BIGINT			NOT NULL
+    , [Bewertung]				FLOAT			NULL
+    , [IstNochImFokus]			BIT				NOT NULL
+CONSTRAINT [PK_Suchbaum] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+
+
 
 -- Diese Tabelle soll alle in der tatsaechlichen Brettsituation moeglichen Zuege 
 -- aufnehmen. Dies koennen nur Zuege sein, die
