@@ -115,7 +115,6 @@ GO
 	DROP TABLE IF EXISTS [Spiel].[Konfiguration]
 	DROP TABLE IF EXISTS [Spiel].[Zugverfolgung]
 	DROP TABLE IF EXISTS [Spiel].[Spielbrettverlauf]
-	DROP TABLE IF EXISTS [Spiel].[Suchbaum]
 	
 	DROP TABLE IF EXISTS [Statistik].[Stellungsbewertung]
 
@@ -326,7 +325,7 @@ GO
 
 -- -----------------------------------------------------------------------------------------------------------------
 
--- um mehrere Spielzuege im Voraus zu planen, muessen Stellungen und deren Bewertungen in verscheidenen 
+-- um mehrere Spielzuege im Voraus zu planen, muessen Stellungen und deren Bewertungen in verschiedenen 
 -- Suchtiefen gespeichert und analysiert werden
 CREATE TABLE [Spiel].[Suchbaum](
       [ID]						BIGINT			NOT NULL
@@ -338,6 +337,7 @@ CREATE TABLE [Spiel].[Suchbaum](
     , [StellungID]				BIGINT			NOT NULL
     , [Bewertung]				FLOAT			NULL
     , [IstNochImFokus]			BIT				NOT NULL
+	, [EFNnachZug]				VARCHAR(100)	NULL
 CONSTRAINT [PK_Suchbaum] PRIMARY KEY CLUSTERED 
 (
 	[ID] ASC
@@ -595,34 +595,6 @@ ALTER TABLE [Spiel].[Konfiguration]
 GO
 -- -----------------------------------------------------------------------------------------------------------------
 
--- Um eine Spielsituation realistisch einschaetzen und bewerten zu koennen, reicht es nicht den aktuellen
--- Spielstand zu analysieren. Gute Schachspieler (und -programme) "blicken" einige Zuege voraus. Das 
--- Programm benoetigt daher einen Suchbaum nach dem Minimax-Algorithmus, fuer den hier die notwendige 
--- Datenstruktur geschaffen wird
-CREATE TABLE [Spiel].[Suchbaum](
-	  [SuchbaumID]					BIGINT		IDENTITY(1,1)	NOT NULL
-	, [VorgaengerID]				BIGINT						NULL			-- gibt den uebergeordneten Knoten des Suchbaumes an
-		CONSTRAINT FK_Suchbaum_Suchbaum FOREIGN KEY ([VorgaengerID])
-		REFERENCES [Spiel].[Suchbaum] ([SuchbaumID])
-	, [TheoretischeAktionID]		BIGINT						NOT NULL		-- FK, gibt den durchgefuehrten Zug an
-	, [Suchtiefe]					TINYINT						NOT NULL		-- je hoeher je genauer - aber auch je ressourcenhungriger, entspricht einem Halbzug
-	, [Stellungsbewertung]			FLOAT						NULL			-- NULL solange unbewertet, positiv = Vorteil WEISS, je hoeher je besser
-	, [IstNochRelevant]				BIT							NOT NULL		-- 1 = TRUE. Wennn FALSE, dann keine tiefere Suche mehr durchfuehren
-	,
- CONSTRAINT [PK_Suchbaum] PRIMARY KEY CLUSTERED 
-(
-	    [SuchbaumID]		ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
--- In die Spalte [VorgaengerID] duerfen nur Werte eingetragen werden, die 
--- auch in der Tabelle [Spiel].[Suchbaum] als [SuchbaumID] vorkommen!
-ALTER TABLE [Spiel].[Suchbaum]
-	ADD CONSTRAINT [FK_Spiel_Suchbaum_Suchbaum] 
-	FOREIGN KEY ([VorgaengerID]) REFERENCES [Spiel].[Suchbaum]([SuchbaumID]);
-GO
--- -----------------------------------------------------------------------------------------------------------------
 
 -- Das Programm bietet das Feature beliebige Schachpartien, die im PGN-Format vorliegen, einzulesen und so bspw. eine 
 -- Eröffnungsbibliothek aufzubauen. Diese strukturierten Textdateien finden man zum (solange sie NICHT kommentiert sind)

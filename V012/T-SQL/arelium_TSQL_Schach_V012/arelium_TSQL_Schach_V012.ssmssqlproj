@@ -1,59 +1,23 @@
 <?xml version="1.0"?>
 <SqlWorkbenchSqlProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Name="arelium_TSQL_Schach_V012">
   <Items>
-    <LogicalFolder Name="Verbindungen" Type="2" Sorted="true">
+    <LogicalFolder Name="Connections" Type="2" Sorted="true">
       <Items>
-        <ConnectionNode Name="(local):">
-          <Created>2023-05-11T11:17:38.7961901+02:00</Created>
+        <ConnectionNode Name="(local):ARELIUMLOCAL\torsten.ahlemeyer">
+          <Created>2023-05-16T10:44:47.153561+02:00</Created>
           <Type>SQL</Type>
           <Server>(local)</Server>
           <UserName />
-          <Authentication>SQL</Authentication>
+          <Authentication>Windows Authentication</Authentication>
           <InitialDB />
           <LoginTimeout>30</LoginTimeout>
           <ExecutionTimeout>0</ExecutionTimeout>
           <ConnectionProtocol>NotSpecified</ConnectionProtocol>
           <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
-        </ConnectionNode>
-        <ConnectionNode Name="(local):">
-          <Created>2023-05-11T18:36:39.2843465+02:00</Created>
-          <Type>SQL</Type>
-          <Server>(local)</Server>
-          <UserName />
-          <Authentication>SQL</Authentication>
-          <InitialDB>arelium_TSQL_Schach_V012</InitialDB>
-          <LoginTimeout>30</LoginTimeout>
-          <ExecutionTimeout>0</ExecutionTimeout>
-          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Abfrage</ApplicationName>
-        </ConnectionNode>
-        <ConnectionNode Name="(local):">
-          <Created>2023-05-12T08:44:19.5518225+02:00</Created>
-          <Type>SQL</Type>
-          <Server>(local)</Server>
-          <UserName />
-          <Authentication>SQL</Authentication>
-          <InitialDB />
-          <LoginTimeout>30</LoginTimeout>
-          <ExecutionTimeout>0</ExecutionTimeout>
-          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
-        </ConnectionNode>
-        <ConnectionNode Name="(local):DESKTOP-OGDDQAL\Torst">
-          <Created>2023-05-12T19:47:23.7048644+02:00</Created>
-          <Type>SQL</Type>
-          <Server>(local)</Server>
-          <UserName />
-          <Authentication>Windows-Authentifizierung</Authentication>
-          <InitialDB>arelium_TSQL_Schach_V012</InitialDB>
-          <LoginTimeout>30</LoginTimeout>
-          <ExecutionTimeout>0</ExecutionTimeout>
-          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Abfrage</ApplicationName>
         </ConnectionNode>
       </Items>
     </LogicalFolder>
-    <LogicalFolder Name="Abfragen" Type="0" Sorted="true">
+    <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
         <FileNode Name="___ - Gesamtskript.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
@@ -163,11 +127,17 @@
           <AssociatedConnUserName />
           <FullPath>046 - Funktion [Spiel].[fncMoeglicheBauernaktionen] erstellen.sql</FullPath>
         </FileNode>
-        <FileNode Name="049 - Funktion [Spiel].[frcMoeglicheAktionen] erstellen.sql">
+        <FileNode Name="048 - Funktion [Spiel].[frcMoeglicheAktionen] erstellen.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>049 - Funktion [Spiel].[frcMoeglicheAktionen] erstellen.sql</FullPath>
+          <FullPath>048 - Funktion [Spiel].[frcMoeglicheAktionen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="049 - Funktion [Spiel].[fncMoeglicheAktionenEFN] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>049 - Funktion [Spiel].[fncMoeglicheAktionenEFN] erstellen.sql</FullPath>
         </FileNode>
         <FileNode Name="050 - ---------- Schlaege ----------------.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
@@ -481,6 +451,12 @@
           <AssociatedConnUserName />
           <FullPath>310 - MiniMax-Algorithmus am Beispiel.sql</FullPath>
         </FileNode>
+        <FileNode Name="312 - Prozedur [Spiel].[prcMinimax] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>312 - Prozedur [Spiel].[prcMinimax] erstellen.sql</FullPath>
+        </FileNode>
         <FileNode Name="400 - ---------- Einzelaktionen ----------------.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
@@ -583,6 +559,12 @@
           <AssociatedConnUserName />
           <FullPath>612 - Funktion [Infrastruktur].[fncStellung2EFN] erstellen.sql</FullPath>
         </FileNode>
+        <FileNode Name="614 - Funktion [Infrastruktur].[fncEFN2Stellung] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>614 - Funktion [Infrastruktur].[fncEFN2Stellung] erstellen.sql</FullPath>
+        </FileNode>
         <FileNode Name="800 - ---------- Beispielpartien ----------------.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
@@ -649,6 +631,12 @@
           <AssociatedConnUserName />
           <FullPath>812 - Beispielpartie TSQL vs TSQL 2xLevel 02.sql</FullPath>
         </FileNode>
+        <FileNode Name="830 - Beispielaufgabe 001 - Matt in zwei.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>830 - Beispielaufgabe 001 - Matt in zwei.sql</FullPath>
+        </FileNode>
         <FileNode Name="900 - ---------- Administratives ----------------.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
@@ -663,7 +651,7 @@
         </FileNode>
       </Items>
     </LogicalFolder>
-    <LogicalFolder Name="Sonstiges" Type="3" Sorted="true">
+    <LogicalFolder Name="Miscellaneous" Type="3" Sorted="true">
       <Items>
         <FileNode Name="bekannte Fehler.txt">
           <AssociatedConnectionMoniker />

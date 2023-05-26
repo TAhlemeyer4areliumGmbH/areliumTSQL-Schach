@@ -367,13 +367,10 @@ BEGIN
 	---- --------------------------------------------------------------
 
 	SET @Stringteil		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
-
 	SET @Zugzahl		= CONVERT(INTEGER, @Stringteil)
 
-	SELECT @Zugzahl
 	SELECT * FROM [Infrastruktur].[vSpielbrett]
-	SELECT @EFN
-	SELECT @Stringteil
+
 
 END
 GO

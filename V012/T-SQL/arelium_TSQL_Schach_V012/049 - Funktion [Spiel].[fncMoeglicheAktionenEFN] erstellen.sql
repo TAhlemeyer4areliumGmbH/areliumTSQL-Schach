@@ -2,15 +2,21 @@
 -- ### arelium_TSQL_Schach_V012 ##############################################################
 -- ### Das Spiel der Koenige - Projektversion ################################################
 -- ###########################################################################################
--- ### Exportieren einer Stellung in die EFN-Notation                                      ###
+-- ### Moegliche Aktionen zusammenstellen                                                  ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### Es gilt ein EFN-String aus einer uebergebenen Stellung zu generieren. Diser soll    ###
--- ### entsprechend dem Protokoll alle notwendigen Informationen ueber alle Figuren und    ###
--- ### ihrer Platzierung sowie ihre´Farbe beinhalten. Ausserdem werden Angaben zu den noch ###
--- ### moeglichen Rochaden erwartet. Auch die Information, ob in dieser Stellung aktuell   ###
--- ### ein "en passant"-Schlag moeglich ist, ist genauso zu geben wie der Zaehler fuer die ###
--- ### 50-Zuege-Regel. Abschliessend wird mitgeteilt, welche Zugnummer als naechstes       ###
--- ### kommt. Einzelheiten unter https://www.embarc.de/fen-forsyth-edwards-notation/       ###
+-- ### Diese Funktion durchlaeuft alle Figuren eines Spielers und notiert die damit laut   ###
+-- ### Spielregeln gueltig durchzufuehrenden Aktionen. Es werden also alle Optionen        ###
+-- ### erfasst, die der Spieler hat, um das Spiel regelkonform fortzusetzen.               ###
+-- ###                                                                                     ###
+-- ### Es werden alle Figurentypen per Cursor durchlaufen, da vorher nicht feststeht,      ###
+-- ### wieviele Figuren dieses Typs noch auf dem Brett stehen. Durch Bauernumwandlung      ###
+-- ### kann die Zahl der Schwerfiguren (T, S, D, L) erhoeht worden sein. Durch Schlaege    ###
+-- ### im Spielverlauf kann die Zahl der Figuren jedes Typs mit Ausnahme des Koenigs       ###
+-- ### reduziert worden sein.                                                              ###
+-- ###                                                                                     ###
+-- ### Am Ende dieses Block gibt es eine (auskommentierte) Testroutine, mit der man fuer   ###
+-- ### eine uebergebene Stellung testen kann, ob alle (und nur diese) gueltigen Zuege fuer ###
+-- ### die genannten Figuren zurueck kommen.                                               ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Sicherheitshinweis:                                                                 ###
 -- ###      Ueber diese Befehlssammlung werden Datenbankobjekte angelegt, geaendert oder   ###
@@ -83,118 +89,53 @@ GO
 -----------------------------
 -- Aufbauarbeiten -----------
 -----------------------------
-CREATE OR ALTER FUNCTION [Infrastruktur].[fncStellung2EFN]
+
+-- Diese Tabnellenwertfunktion erstellt und fuellt eine Rueckgabetabelle mit allen Aktionen, die von der 
+-- uebergebenen Stellung (im EFN-Format) aus unter Beruecksichtigung der Spielregeln genutzt werden koennen. Es werden 
+-- nur Aktionen fuer den aktiven Spieler ermittelt
+CREATE OR ALTER FUNCTION [Spiel].[fncMoeglicheAktionenEFN]
 (
-	  @IstSpielerWeiss				AS BIT
-	, @MoeglicheRochaden			AS VARCHAR(4)
-	, @WoIstEnPassantMoeglich		AS VARCHAR(2)
-	, @Halbzugnummer50ZuegeRegel	AS INTEGER
-	, @NaechsteZugNummer			AS INTEGER
-	, @Bewertungsstellung			AS typStellung			READONLY
+	 @EFN_Bewertungsstellung	AS typStellung			READONLY
 )
-RETURNS VARCHAR(256)
-AS
-BEGIN
-	DECLARE @Rueckgabewert			AS VARCHAR(256)
-	DECLARE @Reihe					AS VARCHAR(8)
-	DECLARE @Spaltenzaehler			AS CHAR(1)
-	DECLARE @Reihenzaehler			AS TINYINT
-
-	-- --------------------------------------------------------------------------
-	-- Schritt 1: 
-	-- je Reihe alle Felder umkonvertieren, hintereinanderhängen und dann
-	-- alle Reihen mit "/" getrennt aneinanderfuegen
-	-- --------------------------------------------------------------------------
-	SET @Reihenzaehler		= 8
-	SET @Rueckgabewert		= ''
-	SET @Reihe				= ''
-
-	WHILE @Reihenzaehler >= 1
+RETURNS @MoeglicheAktionenEFN TABLE 
+	(
+		  [EFN]							VARCHAR(100)	NOT NULL
+		, [TheoretischeAktionenID]		BIGINT			NOT NULL
+		, [HalbzugNr]					INTEGER			NOT NULL
+		, [FigurName]					NVARCHAR(20)	NOT NULL
+		, [IstSpielerWeiss]				BIT				NOT NULL
+		, [StartSpalte]					CHAR(1)			NOT NULL
+		, [StartReihe]					TINYINT			NOT NULL
+		, [StartFeld]					INTEGER			NOT NULL
+		, [ZielSpalte]					CHAR(1)			NOT NULL
+		, [ZielReihe]					TINYINT			NOT NULL
+		, [ZielFeld]					INTEGER			NOT NULL
+		, [Richtung]					CHAR(2)			NOT NULL
+		, [ZugIstSchlag]				BIT				NOT NULL
+		, [ZugIstEnPassant]				BIT				NOT NULL
+		, [ZugIstKurzeRochade]			BIT				NOT NULL
+		, [ZugIstLangeRochade]			BIT				NOT NULL
+		, [UmwandlungsfigurBuchstabe]	NVARCHAR(20)	NULL
+		, [LangeNotation]				VARCHAR(20)		NULL
+		, [KurzeNotationEinfach]		VARCHAR(8)		NULL
+		, [KurzeNotationKomplex]		VARCHAR(8)		NULL
+	) AS
 	BEGIN
-		SET @Reihe = ''
-		SET @Spaltenzaehler		= 'A'
-		WHILE @Spaltenzaehler <= 'H'
-		BEGIN
-			SET @Reihe = @Reihe + 
+
+	-- aus dem EFN-String ein virtuelles Brett besetzen
+
+		INSERT INTO @MoeglicheAktionenEFN 
 			(
-				SELECT 
-					CASE [IstSpielerWeiss]
-						WHEN 0 THEN	
-							CASE [FigurBuchstabe]
-								WHEN 'B'	THEN 'P'
-								WHEN 'T'	THEN 'R'
-								WHEN 'S'	THEN 'N'
-								WHEN 'L'	THEN 'B'
-								WHEN 'D'	THEN 'Q'
-								WHEN 'K'	THEN 'K'
-								ELSE '?'
-							END
-						WHEN 1 THEN
-							CASE [FigurBuchstabe]
-								WHEN 'B'	THEN 'p'
-								WHEN 'T'	THEN 'r'
-								WHEN 'S'	THEN 'n'
-								WHEN 'L'	THEN 'b'
-								WHEN 'D'	THEN 'q'
-								WHEN 'K'	THEN 'k'
-								ELSE '?'
-							END
-						ELSE  -- kann auch NULL sein!
-							'?'
-					END
-				FROM @Bewertungsstellung
-				WHERE 1 = 1
-					AND [Reihe]		= @Reihenzaehler
-					AND [Spalte]	= @Spaltenzaehler
+				  [EFN], [TheoretischeAktionenID], [HalbzugNr], [FigurName], [IstSpielerWeiss], [StartSpalte]
+				, [StartReihe], [StartFeld], [ZielSpalte], [ZielReihe], [ZielFeld], [Richtung], [ZugIstSchlag]
+				, [ZugIstEnPassant], [ZugIstKurzeRochade], [ZugIstLangeRochade], [UmwandlungsfigurBuchstabe]
+				, [LangeNotation], [KurzeNotationEinfach], [KurzeNotationKomplex]
 			)
-			
-			SET @Spaltenzaehler = CHAR(ASCII(@Spaltenzaehler) + 1)
-		END
-		SET @Rueckgabewert = @Rueckgabewert + @Reihe + '/'
-		SET @Reihenzaehler = @Reihenzaehler - 1
-	END
+		SELECT * FROM [Spiel].[fncMoeglicheAktionen]('FALSE', @Bewertungsstellung)
 
-	-- --------------------------------------------------------------------------
-	-- Schritt 2: 
-	-- mehrfach hintereinander vorkommende Leerfelder durch ihre Anzahl ersetzen.
-	-- --------------------------------------------------------------------------
-
-	-- das letzte Trennzeichen wieder entfernen
-	SET @Rueckgabewert = LEFT(@Rueckgabewert, LEN(@Rueckgabewert) - 1)
-
-	SET @Rueckgabewert = 
-		REPLACE(
-			REPLACE(
-				REPLACE(
-					REPLACE(
-						REPLACE(
-							REPLACE(
-								REPLACE(
-									REPLACE(@Rueckgabewert, '????????', 8)
-								, '???????', 7)
-							, '??????', 6)
-						, '?????', 5)
-					, '????', 4)
-				, '???', 3)
-			, '??', 2)
-		, '?', 1)
-
-	-- --------------------------------------------------------------------------
-	-- Schritt 3: 
-	-- Die weiteren Metaangaben in der richtigen Reihenfolge anhaengen. Falls 
-	-- nicht angegeben wurden, ist ein "-" zu notieren
-	-- --------------------------------------------------------------------------
-
-	SET @Rueckgabewert = @Rueckgabewert + ' ' + CASE @IstSpielerWeiss WHEN 'TRUE' THEN 'w' ELSE 'b' END
-	SET @Rueckgabewert = @Rueckgabewert + ' ' + CASE @MoeglicheRochaden WHEN NULL THEN '-' ELSE @MoeglicheRochaden END
-	SET @Rueckgabewert = @Rueckgabewert + ' ' + CASE @WoIstEnPassantMoeglich WHEN '' THEN '-' ELSE @WoIstEnPassantMoeglich END
-	SET @Rueckgabewert = @Rueckgabewert + ' ' + CASE @Halbzugnummer50ZuegeRegel WHEN NULL THEN '-' ELSE CONVERT(VARCHAR(6), @Halbzugnummer50ZuegeRegel) END
-	SET @Rueckgabewert = @Rueckgabewert + ' ' + CONVERT(VARCHAR(5), @NaechsteZugNummer)
-
-	RETURN @Rueckgabewert
-END
-GO			
-
+	RETURN
+	END 
+GO
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -203,7 +144,7 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @Ende		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Zeit		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Skript		VARCHAR(100)	= '612 - Funktion [Infrastruktur].[fncStellung2EFN] erstellen.sql'
+DECLARE @Skript		VARCHAR(100)	= '049 - Funktion [Spiel].[fncMoeglicheAktionenEFN] erstellen.sql'
 PRINT ' '
 PRINT 'Skript     :   ' + @Skript
 PRINT 'Ende       :   ' + @Ende
@@ -211,26 +152,18 @@ PRINT 'Zeit       :   ' + @Zeit
 SELECT @Skript AS Skript, @Ende AS Ende, @Zeit AS Zeit
 GO
 
+
+
 /*
--- Test der Funktion [Spiel].[fncMoeglicheBauernaktionen]
+-- Test der Funktion [Spiel].[fncMoeglicheAktionenEFN]
 
-USE [arelium_TSQL_Schach_V012]
-GO
+DECLARE @EFN varchar(255)
 
-DECLARE @ASpielbrett	AS [dbo].[typStellung]
-INSERT INTO @ASpielbrett
-	SELECT 
-		  1								AS [VarianteNr]
-		, 1								AS [Suchtiefe]
-		, [SB].[Spalte]					AS [Spalte]
-		, [SB].[Reihe]					AS [Reihe]
-		, [SB].[Feld]					AS [Feld]
-		, [SB].[IstSpielerWeiss]		AS [IstSpielerWeiss]
-		, [SB].[FigurBuchstabe]			AS [FigurBuchstabe]
-		, [SB].[FigurUTF8]				AS [FigurUTF8]
-	FROM [Infrastruktur].[Spielbrett]	AS [SB]
+--SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+SET @EFN = '6r1/6pp/7r/1B5K/1P3k2/N7/3R4/8 w - - 30 79'
 
-SELECT [Infrastruktur].[fncStellung2EFN] 
-	('TRUE', 'kKq', 'a3', 3, 1, @ASpielbrett)
+SELECT * FROM [Spiel].[fncMoeglicheAktionenEFN]
+
+
 GO
 */
