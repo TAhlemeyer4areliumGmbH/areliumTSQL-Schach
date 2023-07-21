@@ -303,7 +303,7 @@ CREATE TABLE [Infrastruktur].[TheoretischeAktionen](
 	, [Richtung]					CHAR(2)						NOT NULL		-- Links (LI), Rechts (RE), Oben (OB) und Unten (UN) sowie die 
 																				-- Kombinationen wie Rechts-Unten (RU) oder Links-Oben (LO)
 		CHECK ([Richtung] IN ('OB', 'RO', 'RE', 'RU', 'UN', 'LU', 'LI', 'LO'))
-	, [UmwandlungsfigurBuchstabe]	CHAR(1)					NULL			-- Laeufer, Springer, Turm, Dame
+	, [UmwandlungsfigurBuchstabe]	CHAR(1)						NULL			-- Laeufer, Springer, Turm, Dame
 		CHECK ([UmwandlungsfigurBuchstabe] IN (NULL, 'L', 'S', 'T', 'D'))
 	, [ZugIstSchlag]				BIT							NOT NULL		-- 1 = TRUE
 	, [ZugIstKurzeRochade]			BIT							NOT NULL		-- 1 = TRUE
@@ -334,6 +334,8 @@ CREATE TABLE [Spiel].[Suchbaum](
 	, [Suchtiefe]				TINYINT			NOT NULL
     , [Halbzug]					TINYINT			NOT NULL
     , [TheoretischeAktionID]	BIGINT			NOT NULL
+	, [LangeNotation]			VARCHAR(20)					NULL			-- z.B.: Le3xg5 (Laeufer auf e3 schlaegt g5) oder 
+																				--       b7-b8T (Bauer von b7 nach b8 --> Bauernumwandlung in einen Turm)
     , [StellungID]				BIGINT			NOT NULL
     , [Bewertung]				FLOAT			NULL
     , [IstNochImFokus]			BIT				NOT NULL

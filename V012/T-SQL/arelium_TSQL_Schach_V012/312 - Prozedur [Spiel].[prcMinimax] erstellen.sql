@@ -98,7 +98,6 @@ der einzelnen Stellungen wird erst spaeter und nur fuer ausgewaehlte Stellungen 
  ┌──┴──┐   ┌──┴──┐  ┌──┴──┐   ┌──┴──┐  ┌──┴──┐  ┌──┴──┐ ┌──┴──┐ ┌──┴──┐ ┌──┴──┐ ┌──┴──┐ ┌──┴──┐ 
  │ ?|19│   │ ?|20│  │ ?|21│   │ ?|22│  │ ?|23│  │ ?|24│ │ ?|25│ │ ?|26│ │ ?|27│ │ ?|28│ │ ?|29│              4. Halbzug (nach Zug SCHWARZ)
  └─────┘   └─────┘  └─────┘   └─────┘  └─────┘  └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘
-
 */
 
 CREATE OR ALTER PROCEDURE [Spiel].[prcMinimax]
@@ -120,11 +119,6 @@ BEGIN
 	DECLARE @Zugnummer				AS INTEGER
 	DECLARE @ID						AS BIGINT
 	DECLARE @TheoretischeAktionID	AS BIGINT
-
-	-- Die EFN-Notation wird zusaetzlich in eine Stellung ueberfuehrt
-	INSERT INTO @BSpielbrett
-	SELECT 1, 1, * FROM [Infrastruktur].[fncEFN2Stellung](@EFN_Bewertungsstellung)
-
 	
 	-- die EFN_Bewertungsstellung wird in zwei Bereiche aufgebrochen
 	SET @EFN_Notation				= TRIM(LEFT(@EFN_Bewertungsstellung, CHARINDEX(' ', @EFN_Bewertungsstellung, 1)))
@@ -163,18 +157,23 @@ BEGIN
 	TRUNCATE TABLE [Spiel].[Suchbaum]
 
 	-- alle moeglichen Zuege aus der aktuellen Stellung erfassen
-	INSERT INTO [Spiel].[Suchbaum] ([ID], [VorgaengerID], [Suchtiefe], [Halbzug], [TheoretischeAktionID], [StellungID], [Bewertung], [IstNochImFokus], [EFNnachZug])
+	INSERT INTO [Spiel].[Suchbaum] ([ID], [VorgaengerID], [Suchtiefe], [Halbzug], [TheoretischeAktionID], [LangeNotation], [StellungID], [Bewertung], [IstNochImFokus], [EFNnachZug])
 	SELECT 
 		  ROW_NUMBER() OVER (ORDER BY GETDATE())		AS [ID]
 		, 1												AS [VorgaengerID]
 		, @MaxSuchtiefe									AS [MaxSuchtiefe]
 		, @Halbzugzaehler								AS [Halbzug]
 		, [TheoretischeAktionenID]						AS [TheoretischeAktionenID]
+		, [LangeNotation]								AS [LangeNotation]
 		, 1												AS [StellungID]
 		, NULL											AS [Bewertung]
 		, 'TRUE'										AS [IstNochImFokus]
 		, NULL											AS [EFNnachZug]
 	FROM [Spiel].[MoeglicheAktionen]
+
+	-- Die EFN-Notation wird zusaetzlich in eine Stellung ueberfuehrt
+	INSERT INTO @BSpielbrett
+	SELECT 1, 1, * FROM [Infrastruktur].[fncEFN2Stellung](@EFN_Bewertungsstellung)
 
 	-- Es werden alle noch nicht EFN-codierten Stellungen gesucht und nach und nach
 	-- untersucht. Dazu wird die Stellung virtuell geladen und genau der eine moegliche
@@ -205,7 +204,9 @@ BEGIN
 			-- Den Zug ausfuehren
 			INSERT INTO #TempSpielsituation
 					([Spalte], [Reihe], [Feld], [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])  
-			EXECUTE [Spiel].[prcZugSimulieren] @EFN_Bewertungsstellung, @TheoretischeAktionID
+			EXECUTE [Spiel].[prcZugSimulieren] @BSpielbrett, @TheoretischeAktionID
+
+			SELECT * FROM #TempSpielsituation
 
 			-- Die Spielvariante wegschreiben
 			INSERT INTO @BSpielbrett
@@ -240,11 +241,11 @@ BEGIN
 
 
 
-	SELECT [Infrastruktur].[fncStellung2EFN] (@IstSpielerWeiss, @RochadeMoeglichkeiten, @EnPassantMoeglichkeit, @HalbzugAnzahl, @Zugnummer, @BSpielbrett)
+	-- SELECT [Infrastruktur].[fncStellung2EFN] (@IstSpielerWeiss, @RochadeMoeglichkeiten, @EnPassantMoeglichkeit, @HalbzugAnzahl, @Zugnummer, @BSpielbrett)
 	-- SELECT @EFN_Bewertungsstellung
 	-- SELECT * FROM @BSpielbrett
-	SELECT * FROM [Spiel].[Suchbaum]
-	/*
+	-- SELECT * FROM [Spiel].[Suchbaum]
+	
 
 	
 	-- wiederholt nun alle Zugmoeglichkeiten abarbeiten. Dabei in die Tiefe
@@ -259,7 +260,7 @@ BEGIN
 		SET @Halbzugzaehler = @Halbzugzaehler + 1
 	END
 
-	*/
+	
 END
 
 
