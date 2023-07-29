@@ -165,6 +165,7 @@ BEGIN
 														AND [Spalte]	= LEFT(@Startquadrat, 1) 
 														AND [Reihe]		= CONVERT(INTEGER, RIGHT(@Startquadrat, 1))
 												)
+												
 							SET @Zielfeld		= (	SELECT [Feld] 
 													FROM [Infrastruktur].[Spielbrett] 
 													WHERE 1 = 1

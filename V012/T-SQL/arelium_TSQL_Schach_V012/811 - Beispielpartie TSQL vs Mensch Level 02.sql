@@ -98,8 +98,8 @@ GO
 /*
 -- Die Zeit fuer SCHWARZ laeuft...
 EXECUTE [Spiel].[prcZugAusfuehrenUndReagieren] 
-		  @Startquadrat				= 'd5'
-		, @Zielquadrat				= 'e4'
+		  @Startquadrat				= 'd7'
+		, @Zielquadrat				= 'd5'
 		, @Umwandlungsfigur			= NULL
 		, @IstEnPassant				= 'FALSE'
 		, @IstSpielerWeiss			= 'FALSE'

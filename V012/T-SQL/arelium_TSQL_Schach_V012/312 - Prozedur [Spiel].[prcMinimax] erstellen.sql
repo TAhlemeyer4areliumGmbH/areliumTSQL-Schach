@@ -107,18 +107,21 @@ CREATE OR ALTER PROCEDURE [Spiel].[prcMinimax]
 )
 AS
 BEGIN
-	DECLARE @Halbzugzaehler			AS TINYINT
-	DECLARE @BSpielbrett			AS [dbo].[typStellung]
-	DECLARE @EFN_Notation			AS VARCHAR(70)
-	DECLARE @Metadaten				AS VARCHAR(30)
-	DECLARE @IstSpielerWeiss		AS BIT
-	DECLARE @RochadeMoeglichkeiten	AS VARCHAR(4)
-	DECLARE @EnPassantMoeglichkeit	AS VARCHAR(2)
-	DECLARE @TempString				AS VARCHAR(10)
-	DECLARE @HalbzugAnzahl			AS INTEGER
-	DECLARE @Zugnummer				AS INTEGER
-	DECLARE @ID						AS BIGINT
-	DECLARE @TheoretischeAktionID	AS BIGINT
+	DECLARE @EFN_Notation				AS VARCHAR(70)
+	DECLARE @Metadaten					AS VARCHAR(30)
+	DECLARE @IstSpielerWeiss			AS BIT
+	DECLARE @RochadeMoeglichkeiten		AS VARCHAR(4)
+	DECLARE @EnPassantMoeglichkeit		AS VARCHAR(2)
+	DECLARE @TempString					AS VARCHAR(10)
+	DECLARE @HalbzugAnzahl				AS INTEGER
+	DECLARE @Zugnummer					AS INTEGER
+	DECLARE @Halbzugzaehler				AS TINYINT
+
+	--DECLARE @AktuellesSpielbrett		AS [dbo].[typStellung]
+	--DECLARE @CSpielbrett				AS [dbo].[typStellung]
+	--DECLARE @ID						AS BIGINT
+	--DECLARE @TheoretischeAktionID		AS BIGINT
+	--DECLARE @LangeNotation			AS VARCHAR(20)
 	
 	-- die EFN_Bewertungsstellung wird in zwei Bereiche aufgebrochen
 	SET @EFN_Notation				= TRIM(LEFT(@EFN_Bewertungsstellung, CHARINDEX(' ', @EFN_Bewertungsstellung, 1)))
@@ -171,7 +174,7 @@ BEGIN
 		, NULL											AS [EFNnachZug]
 	FROM [Spiel].[MoeglicheAktionen]
 
-	-- Die EFN-Notation wird zusaetzlich in eine Stellung ueberfuehrt
+	---- Die EFN-Notation wird zusaetzlich in eine Stellung ueberfuehrt
 	INSERT INTO @BSpielbrett
 	SELECT 1, 1, * FROM [Infrastruktur].[fncEFN2Stellung](@EFN_Bewertungsstellung)
 
@@ -181,7 +184,7 @@ BEGIN
 	-- Stellung ins das EFN-Format ueberfuehrt, welches dann im Datensatz dauerhaft
 	-- gespeichert wird.
 	DECLARE curEFN CURSOR FOR   
-		SELECT DISTINCT [ID], [TheoretischeAktionID]
+		SELECT DISTINCT [ID], [TheoretischeAktionID], [LangeNotation]
 		FROM [Spiel].[Suchbaum]
 		WHERE 1 = 1
 			AND [EFNnachZug]		IS NULL
@@ -189,10 +192,10 @@ BEGIN
 
 	OPEN curEFN
   
-		FETCH NEXT FROM curEFN INTO @ID, @TheoretischeAktionID
+		FETCH NEXT FROM curEFN INTO @ID, @TheoretischeAktionID, @LangeNotation
 		WHILE @@FETCH_STATUS = 0  
 		BEGIN 
-			SELECT @ID, @TheoretischeAktionID
+			SELECT @ID, @TheoretischeAktionID, @LangeNotation
 			DROP TABLE IF EXISTS #TempSpielsituation
 
 			-- eine neue (leere) temporaere Tabelle aus dem Nichts erschaffen
@@ -201,36 +204,39 @@ BEGIN
 			FROM [Infrastruktur].[Spielbrett]
 			WHERE 1 = 0
 
+						EXECUTE [Spiel].[prcZugSimulieren] @BSpielbrett, @TheoretischeAktionID
+
 			-- Den Zug ausfuehren
 			INSERT INTO #TempSpielsituation
 					([Spalte], [Reihe], [Feld], [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])  
 			EXECUTE [Spiel].[prcZugSimulieren] @BSpielbrett, @TheoretischeAktionID
 
-			SELECT * FROM #TempSpielsituation
+						--SELECT * FROM #TempSpielsituation
+						--SELECT * FROM @BSpielbrett
 
-			-- Die Spielvariante wegschreiben
-			INSERT INTO @BSpielbrett
-					([VarianteNr], [Suchtiefe], [Spalte], [Reihe], [Feld], [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])  
-			SELECT
-				  (SELECT ISNULL(MAX([VarianteNr]), 0) + 1 FROM @BSpielbrett)
-				, @Halbzugzaehler
-				, [Spalte]
-				, [Reihe]
-				, [Feld]
-				, [IstSpielerWeiss]
-				, [FigurBuchstabe]
-				, [FigurUTF8]
-			FROM #TempSpielsituation
+	--		-- Die Spielvariante wegschreiben
+	--		INSERT INTO @BSpielbrett
+	--				([VarianteNr], [Suchtiefe], [Spalte], [Reihe], [Feld], [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])  
+	--		SELECT
+	--			  (SELECT ISNULL(MAX([VarianteNr]), 0) + 1 FROM @BSpielbrett)
+	--			, @Halbzugzaehler
+	--			, [Spalte]
+	--			, [Reihe]
+	--			, [Feld]
+	--			, [IstSpielerWeiss]
+	--			, [FigurBuchstabe]
+	--			, [FigurUTF8]
+	--		FROM #TempSpielsituation
 
 
-			-- den EFN-String ermitteln und speichern
-			UPDATE [Spiel].[Suchbaum]
-			SET [EFNnachZug] = (SELECT [Infrastruktur].[fncStellung2EFN] (@IstSpielerWeiss, @RochadeMoeglichkeiten, @EnPassantMoeglichkeit, @HalbzugAnzahl, @Zugnummer, @BSpielbrett))
-			WHERE 1 = 1
-				AND [ID] = @ID
+	--		-- den EFN-String ermitteln und speichern
+	--		UPDATE [Spiel].[Suchbaum]
+	--		SET [EFNnachZug] = (SELECT [Infrastruktur].[fncStellung2EFN] (@IstSpielerWeiss, @RochadeMoeglichkeiten, @EnPassantMoeglichkeit, @HalbzugAnzahl, @Zugnummer, @BSpielbrett))
+	--		WHERE 1 = 1
+	--			AND [ID] = @ID
 				
 
-			FETCH NEXT FROM curEFN INTO @ID, @TheoretischeAktionID
+			FETCH NEXT FROM curEFN INTO @ID, @TheoretischeAktionID, @LangeNotation
 		END
 	CLOSE curEFN;  
 	DEALLOCATE curEFN; 
@@ -250,15 +256,15 @@ BEGIN
 	
 	-- wiederholt nun alle Zugmoeglichkeiten abarbeiten. Dabei in die Tiefe
 	-- bis zur maximalen Suchtiefe gehen
-	WHILE @Halbzugzaehler <= @MaxSuchtiefe
-	BEGIN
+	--WHILE @Halbzugzaehler <= @MaxSuchtiefe
+	--BEGIN
 
-		UPDATE [Spiel].[Suchbaum] 
-		SET [Bewertung]		= 2
-		WHERE [Bewertung]	IS NULL
+	--	UPDATE [Spiel].[Suchbaum] 
+	--	SET [Bewertung]		= 2
+	--	WHERE [Bewertung]	IS NULL
 
-		SET @Halbzugzaehler = @Halbzugzaehler + 1
-	END
+	--	SET @Halbzugzaehler = @Halbzugzaehler + 1
+	--END
 
 	
 END
@@ -282,4 +288,118 @@ GO
 
 
 
+*/
+
+
+
+
+
+/*
+
+	-- alle moeglichen Zuege aus der aktuellen Stellung erfassen
+	INSERT INTO [Spiel].[Suchbaum] ([ID], [VorgaengerID], [Suchtiefe], [Halbzug], [TheoretischeAktionID], [LangeNotation], [StellungID], [Bewertung], [IstNochImFokus], [EFNnachZug])
+	SELECT 
+		  ROW_NUMBER() OVER (ORDER BY GETDATE())		AS [ID]
+		, 1												AS [VorgaengerID]
+		, @MaxSuchtiefe									AS [MaxSuchtiefe]
+		, @Halbzugzaehler								AS [Halbzug]
+		, [TheoretischeAktionenID]						AS [TheoretischeAktionenID]
+		, [LangeNotation]								AS [LangeNotation]
+		, 1												AS [StellungID]
+		, NULL											AS [Bewertung]
+		, 'TRUE'										AS [IstNochImFokus]
+		, NULL											AS [EFNnachZug]
+	FROM [Spiel].[MoeglicheAktionen]
+
+	---- Die EFN-Notation wird zusaetzlich in eine Stellung ueberfuehrt
+	INSERT INTO @BSpielbrett
+	SELECT 1, 1, * FROM [Infrastruktur].[fncEFN2Stellung](@EFN_Bewertungsstellung)
+
+	-- Es werden alle noch nicht EFN-codierten Stellungen gesucht und nach und nach
+	-- untersucht. Dazu wird die Stellung virtuell geladen und genau der eine moegliche
+	-- Zug wird (ebenfalls virtuell) ausgefuehrt. Anschliessend wird die dann neu erreichte
+	-- Stellung ins das EFN-Format ueberfuehrt, welches dann im Datensatz dauerhaft
+	-- gespeichert wird.
+	DECLARE curEFN CURSOR FOR   
+		SELECT DISTINCT [ID], [TheoretischeAktionID], [LangeNotation]
+		FROM [Spiel].[Suchbaum]
+		WHERE 1 = 1
+			AND [EFNnachZug]		IS NULL
+		ORDER BY [ID];  
+
+	OPEN curEFN
+  
+		FETCH NEXT FROM curEFN INTO @ID, @TheoretischeAktionID, @LangeNotation
+		WHILE @@FETCH_STATUS = 0  
+		BEGIN 
+			SELECT @ID, @TheoretischeAktionID, @LangeNotation
+			DROP TABLE IF EXISTS #TempSpielsituation
+
+			-- eine neue (leere) temporaere Tabelle aus dem Nichts erschaffen
+			SELECT *
+			INTO #TempSpielsituation
+			FROM [Infrastruktur].[Spielbrett]
+			WHERE 1 = 0
+
+						EXECUTE [Spiel].[prcZugSimulieren] @BSpielbrett, @TheoretischeAktionID
+
+			-- Den Zug ausfuehren
+			INSERT INTO #TempSpielsituation
+					([Spalte], [Reihe], [Feld], [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])  
+			EXECUTE [Spiel].[prcZugSimulieren] @BSpielbrett, @TheoretischeAktionID
+
+						--SELECT * FROM #TempSpielsituation
+						--SELECT * FROM @BSpielbrett
+
+	--		-- Die Spielvariante wegschreiben
+	--		INSERT INTO @BSpielbrett
+	--				([VarianteNr], [Suchtiefe], [Spalte], [Reihe], [Feld], [IstSpielerWeiss], [FigurBuchstabe], [FigurUTF8])  
+	--		SELECT
+	--			  (SELECT ISNULL(MAX([VarianteNr]), 0) + 1 FROM @BSpielbrett)
+	--			, @Halbzugzaehler
+	--			, [Spalte]
+	--			, [Reihe]
+	--			, [Feld]
+	--			, [IstSpielerWeiss]
+	--			, [FigurBuchstabe]
+	--			, [FigurUTF8]
+	--		FROM #TempSpielsituation
+
+
+	--		-- den EFN-String ermitteln und speichern
+	--		UPDATE [Spiel].[Suchbaum]
+	--		SET [EFNnachZug] = (SELECT [Infrastruktur].[fncStellung2EFN] (@IstSpielerWeiss, @RochadeMoeglichkeiten, @EnPassantMoeglichkeit, @HalbzugAnzahl, @Zugnummer, @BSpielbrett))
+	--		WHERE 1 = 1
+	--			AND [ID] = @ID
+				
+
+			FETCH NEXT FROM curEFN INTO @ID, @TheoretischeAktionID, @LangeNotation
+		END
+	CLOSE curEFN;  
+	DEALLOCATE curEFN; 
+
+
+
+
+
+
+
+	-- SELECT [Infrastruktur].[fncStellung2EFN] (@IstSpielerWeiss, @RochadeMoeglichkeiten, @EnPassantMoeglichkeit, @HalbzugAnzahl, @Zugnummer, @BSpielbrett)
+	-- SELECT @EFN_Bewertungsstellung
+	-- SELECT * FROM @BSpielbrett
+	-- SELECT * FROM [Spiel].[Suchbaum]
+	
+
+	
+	-- wiederholt nun alle Zugmoeglichkeiten abarbeiten. Dabei in die Tiefe
+	-- bis zur maximalen Suchtiefe gehen
+	--WHILE @Halbzugzaehler <= @MaxSuchtiefe
+	--BEGIN
+
+	--	UPDATE [Spiel].[Suchbaum] 
+	--	SET [Bewertung]		= 2
+	--	WHERE [Bewertung]	IS NULL
+
+	--	SET @Halbzugzaehler = @Halbzugzaehler + 1
+	--END
 */

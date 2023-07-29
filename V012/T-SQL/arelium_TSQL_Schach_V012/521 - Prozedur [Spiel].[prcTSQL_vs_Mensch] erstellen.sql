@@ -115,7 +115,7 @@ BEGIN
 	DECLARE @IstEnPassantComputerzug			AS BIT
 
 	-- nun reagiert der Rechner als Gegenspieler
-	IF (SELECT [SpielstaerkeID] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE') BETWEEN 1 AND 2				-- zufaelliger Zug
+	IF (SELECT [SpielstaerkeID] FROM [Spiel].[Konfiguration] WHERE [IstSpielerWeiss] = 'FALSE') BETWEEN 1 AND 3				-- zufaelliger Zug
 	BEGIN
 		
 		INSERT INTO @Computerzug
