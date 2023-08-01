@@ -49,11 +49,11 @@
           <AssociatedConnUserName />
           <FullPath>012 - Insert content initially.sql</FullPath>
         </FileNode>
-        <FileNode Name="021 - build basic position.sql">
+        <FileNode Name="021 - set up basic position.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>021 - build basic position.sql</FullPath>
+          <FullPath>021 - set up basic position.sql</FullPath>
         </FileNode>
         <FileNode Name="031 - Procedur [Infrastructure].[prcInitialisationOfTheoreticalActions].sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
@@ -120,6 +120,12 @@
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>614 - Function [Infrastructure].[fncEFN2Position].sql</FullPath>
+        </FileNode>
+        <FileNode Name="SQLQuery1.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>SQLQuery1.sql</FullPath>
         </FileNode>
       </Items>
     </LogicalFolder>

@@ -1583,8 +1583,18 @@ RETURNS @PossibleActions TABLE
 		-- example, because a piece has already been moved, which is not necessarily visible from the current 
 		-- view of the board. Therefore, the EFN string must be evaluated and individual actions may 
 		-- have to be discarded.
+		
+		DECLARE @BeginOfCastles		AS TINYINT
+		DECLARE @Castles			AS VARCHAR(4)
+		
+		SET @BeginOfCastles			= [Library].[fncCharIndexNG2](' ', @EFN, 2) + 1
+		SET @Castles				= LEFT(RIGHT(@EFN, LEN(@EFN) - @BeginOfCastles), CHARINDEX(RIGHT(@EFN, LEN(@EFN) - @BeginOfCastles), ' ', 1))
 
-
+		IF CHARINDEX(@Castles, 'K', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o' 
+		IF CHARINDEX(@Castles, 'k', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o'
+		IF CHARINDEX(@Castles, 'Q', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o-o'
+		IF CHARINDEX(@Castles, 'q', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o-o'
+		
 	
 
 		-- --------------------------------------------------------------------------
@@ -1597,6 +1607,25 @@ RETURNS @PossibleActions TABLE
 		-- from the current view of the board. Therefore, the EFN string must be evaluated and individual 
 		-- actions may have to be discarded.
 
+		DECLARE @BeginOfEnPassant	AS TINYINT
+		DECLARE @EnPassant			AS CHAR(2)
+		
+		SET @BeginOfEnPassant		= [Library].[fncCharIndexNG2](' ', @EFN, 3) + 1
+		SET @EnPassant				= LEFT(RIGHT(@EFN, LEN(@EFN) - @BeginOfEnPassant), 2)
+
+		IF @EnPassant <> '- ' 
+		BEGIN
+			-- the EFN string contains the information that no "en passant" situation exists
+			DELETE FROM @PossibleActions WHERE [LongNotation] like '%e.p.'
+		END
+		ELSE
+		BEGIN
+			-- it can only be struck "en passant" on the field transmitted in the EFN string. This can be up to 2 
+			-- possible captures by the opponent! (my pawn has completed a double move exactly between two pawns of the opponent).
+
+			DELETE FROM @PossibleActions WHERE [LongNotation] like '%e.p.' AND [LongNotation] NOT like '%' + @EnPassant  + 'e.p.'
+			
+		END
 
 	RETURN
 	END 
