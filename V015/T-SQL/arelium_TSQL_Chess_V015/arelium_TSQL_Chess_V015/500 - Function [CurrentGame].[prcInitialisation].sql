@@ -2,14 +2,14 @@
 -- ### arelium_TSQL_Chess_V015 ###############################################################
 -- ### the royal SQL game - project version ##################################################
 -- ###########################################################################################
--- ### FUNCTION [Infrastructure].[fncEFN2Position]                                         ###
+-- ### Insert content initially                                                            ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### An EFN string is read in and the information contained there is transferred into a  ###
--- ### concrete position. In this function, only a part of the EFN string is relevant -    ###
--- ### the notation also contains further meta information. In this way, the EFN notation  ###
--- ### can also be used to judge whether an "en passant" move is allowed as the next       ###
--- ### action, whether one still has the right to a long/short castling move or whether it ###
--- ### is his move.       Details: https://www.embarc.de/fen-forsyth-edwards-notation/     ###
+-- ### When a new game is started, some settings and preparations have to be made. The     ###
+-- ### board has to be set up, the starting position has to be taken, the active player    ###
+-- ### has to be determined, etc....                                                       ###
+-- ###                                                                                     ###
+-- ### In addition, the players are to be configured: Names, playing strength, auxiliary   ###
+-- ### functions to be used, ...                                                           ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Security note:                                                                      ###
 -- ###    This collection of commands is used to create, alter oder drop objects or insert ###
@@ -82,131 +82,80 @@ GO
 -- commands do not have an IF-EXISTS syntax, this is the first place to clean up the list. Existing 
 -- objects are deleted by DROP, so that they can be re-created later in an orderly fashion.
 
+
 --------------------------------------------------------------------------------------------------
 -- Construction work -----------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
-
-
-CREATE OR ALTER FUNCTION [Infrastructure].[fncEFN2Position]
-	(
-		  @EFN					AS VARCHAR(255)
-	)
-RETURNS @EFN2Position TABLE
-	(
-	  [Column]					CHAR(1)		NOT NULL						-- A-H
-	, [Row]						TINYINT		NOT NULL						-- 1-8
-	, [Field]					TINYINT		NOT NULL						-- A1 = 1, A2 = 2, ..., B1 = 9, ...,  H8 = 64
-	, [IsPlayerWhite]			BIT			NULL							-- 1 = TRUE
-	, [FigureLetter]			CHAR(1)		NULL						
-		CHECK ([FigureLetter] IN (NULL, 'B', 'N', 'R', 'K', 'Q', 'P'))
-	, [FigureUTF8]				BIGINT		NOT NULL		
-	)
-
+-- The table [CurrentGame].[Configuration] is read out, where among other things the playing strength 
+-- of both players is stored. Depending on the values mentioned here, the position evaluation is 
+-- based on different criteria. Details on this can be found in the table [Infrastructure].[Level]
+CREATE OR ALTER PROCEDURE [CurrentGame].[prcInitialisation] 
+	  @NameWhite					AS NVARCHAR(30)
+	, @NameBlack					AS NVARCHAR(30)
+	, @IsPlayerHumanWhite			AS BIT
+	, @IsPlayerHumanBlack			AS BIT
+	, @LevelWhite					AS INTEGER
+	, @LevelBlack					AS INTEGER
+	, @RemainingTimeWhiteInSeconds	AS INTEGER
+	, @RemainingTimeBlackInSeconds	AS INTEGER
+AS
 BEGIN
-	DECLARE @PositionString		AS VARCHAR(64)
-	DECLARE @Loop				AS TINYINT
-	DECLARE @StringPart			AS VARCHAR(8)
-	DECLARE @ID					AS TINYINT
-	DECLARE @Letter				AS CHAR(1)
+	SET NOCOUNT ON;
 
-	-- --------------------------------------------------------------
-	-- Step 1: resolve several empty fields in succession
-	-- --------------------------------------------------------------
+	-- Set up basic position
+	EXECUTE [Infrastructure].[prcSetUpBasicPosition]
 
-	-- The board data is extracted from the EFN string.
-	SET @EFN				= LEFT(@EFN, CHARINDEX(' ', @EFN))
-	SET @EFN				= TRIM(@EFN)
-	SET @EFN				= REPLACE(@EFN, '/', '')
-	SET @EFN				= REPLACE(@EFN, '1', '?')
-	SET @EFN				= REPLACE(@EFN, '2', '??')
-	SET @EFN				= REPLACE(@EFN, '3', '???')
-	SET @EFN				= REPLACE(@EFN, '4', '????')
-	SET @EFN				= REPLACE(@EFN, '5', '?????')
-	SET @EFN				= REPLACE(@EFN, '6', '??????')
-	SET @EFN				= REPLACE(@EFN, '7', '???????')
-	SET @EFN				= REPLACE(@EFN, '8', '????????')
+	-- Create player record
+	TRUNCATE TABLE [CurrentGame].[Configuration]
 
-	-- --------------------------------------------------------------
-	-- Step 2: Evaluate the position information of the figures
-	-- --------------------------------------------------------------
-	SET @Loop = 1
+	INSERT INTO [CurrentGame].[Configuration]
+           ( [IsPlayerWhite]
+           , [NameOfPlayer]
+		   , [IsPlayerHuman]
+           , [LevelID]
+		   )
+     VALUES
+             ('FALSE'	, @NameWhite	, @IsPlayerHumanWhite,   @LevelWhite)
+           , ('TRUE'	, @NameBlack	, @IsPlayerHumanBlack,   @LevelBlack)
 
-	WHILE @Loop <= 64
-	BEGIN
+	-- first read the current board into a variable
+	DECLARE @EFN		AS VARCHAR(100)	
+	SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w qQkK 0 1'			-- this EFB string represents the basic position
+																				-- See script 600-620 for more information about the EFN protocol
 
-		INSERT INTO @EFN2Position
-			( [Column]
-			, [Row]
-			, [Field]
-			, [IsPlayerWhite]
-			, [FigureLetter]
-			, [FigureUTF8])
-		 VALUES
-			( CHAR(64 + (((@Loop - 1) % 8) + 1))
-			, ((65 - @Loop + 7) / 8)
-			, ((((65 - @Loop + 7) / 8) - 1) * 8) + (((@Loop - 1) % 8) + 1)
-			, (SELECT
-				CASE SUBSTRING(@EFN, @Loop, 1)
-					WHEN 'r' COLLATE Latin1_General_CS_AI THEN 'FALSE'
-					WHEN 'R' COLLATE Latin1_General_CS_AI THEN 'TRUE'
-					WHEN 'n' COLLATE Latin1_General_CS_AI THEN 'FALSE'
-					WHEN 'N' COLLATE Latin1_General_CS_AI THEN 'TRUE'
-					WHEN 'b' COLLATE Latin1_General_CS_AI THEN 'FALSE'
-					WHEN 'B' COLLATE Latin1_General_CS_AI THEN 'TRUE'
-					WHEN 'q' COLLATE Latin1_General_CS_AI THEN 'FALSE'
-					WHEN 'Q' COLLATE Latin1_General_CS_AI THEN 'TRUE'
-					WHEN 'k' COLLATE Latin1_General_CS_AI THEN 'FALSE'
-					WHEN 'K' COLLATE Latin1_General_CS_AI THEN 'TRUE'
-					WHEN 'p' COLLATE Latin1_General_CS_AI THEN 'FALSE'
-					WHEN 'P' COLLATE Latin1_General_CS_AI THEN 'TRUE'
-					ELSE NULL
-				END
-				)
-			, (SELECT
-				CASE SUBSTRING(@EFN, @Loop, 1)
-					WHEN '$' COLLATE Latin1_General_CS_AI THEN '?'
-					WHEN 'r' COLLATE Latin1_General_CS_AI THEN 'R'
-					WHEN 'R' COLLATE Latin1_General_CS_AI THEN 'R'
-					WHEN 'n' COLLATE Latin1_General_CS_AI THEN 'N'
-					WHEN 'N' COLLATE Latin1_General_CS_AI THEN 'N'
-					WHEN 'b' COLLATE Latin1_General_CS_AI THEN 'L'
-					WHEN 'B' COLLATE Latin1_General_CS_AI THEN 'L'
-					WHEN 'q' COLLATE Latin1_General_CS_AI THEN 'D'
-					WHEN 'Q' COLLATE Latin1_General_CS_AI THEN 'D'
-					WHEN 'k' COLLATE Latin1_General_CS_AI THEN 'K'
-					WHEN 'K' COLLATE Latin1_General_CS_AI THEN 'K'
-					WHEN 'p' COLLATE Latin1_General_CS_AI THEN 'B'
-					WHEN 'P' COLLATE Latin1_General_CS_AI THEN 'B'
-					ELSE NULL
-				END
-				)
-			, (SELECT	
-				CASE SUBSTRING(@EFN, @Loop, 1)
-					WHEN '$' COLLATE Latin1_General_CS_AI THEN 160
-					WHEN 'r' COLLATE Latin1_General_CS_AI THEN 9820
-					WHEN 'R' COLLATE Latin1_General_CS_AI THEN 9814
-					WHEN 'n' COLLATE Latin1_General_CS_AI THEN 9822
-					WHEN 'N' COLLATE Latin1_General_CS_AI THEN 9816
-					WHEN 'b' COLLATE Latin1_General_CS_AI THEN 9821
-					WHEN 'B' COLLATE Latin1_General_CS_AI THEN 9815
-					WHEN 'q' COLLATE Latin1_General_CS_AI THEN 9819
-					WHEN 'Q' COLLATE Latin1_General_CS_AI THEN 9813
-					WHEN 'k' COLLATE Latin1_General_CS_AI THEN 9818
-					WHEN 'K' COLLATE Latin1_General_CS_AI THEN 9812
-					WHEN 'p' COLLATE Latin1_General_CS_AI THEN 9823
-					WHEN 'P' COLLATE Latin1_General_CS_AI THEN 9817
-					ELSE NULL
-				END
-				)
-			)
+	-- Empty the board 
+	TRUNCATE TABLE [Infrastructure].[GameBoard]
+	
+	-- reload the board with position by EFN
+	INSERT INTO [Infrastructure].[GameBoard] 
+	SELECT *
+	FROM [Infrastructure].[fncEFN2Position](@EFN)
 
 
-		SET @Loop = @Loop + 1
-	END
 
-	RETURN
+
+	---- Identify possible actions
+	--EXECUTE [CurrentGame].[prcAktionenFuerAktuelleStellungWegschreiben] 
+	--	  @IstSpielerWeiss			= 'TRUE'
+	--	, @IstStellungZuBewerten	= 'TRUE'
+	--	, @AktuelleStellung			= @GameBoard
+
+	---- Die Zughistorie loeschen
+	--TRUNCATE TABLE [CurrentGame].[Zugverfolgung]
+
+	---- ------------------------------------------
+	---- Stellung bewerten
+	---- ------------------------------------------
+
+	---- Die Statistiktabelle fuer die aktuelle Stellung aktualisieren
+	--EXECUTE [Statistik].[prcStellungBewerten] 'TRUE',	@GameBoard
+
+	---- Das Spielbrett und die Statistiken anzeigen
+	--SELECT * FROM [Infrastruktur].[vSpielbrett]
+
 END
 GO
+
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -215,7 +164,7 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @End		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Time		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Script		VARCHAR(100)	= '614 - Function [Infrastructure].[fncEFN2Position].sql'
+DECLARE @Script		VARCHAR(100)	= '500 - Function [CurrentGame].[prcInitialisation].sql'
 PRINT ' '
 PRINT 'Script     :   ' + @Script
 PRINT 'End        :   ' + @End
@@ -223,19 +172,39 @@ PRINT 'Time       :   ' + @Time
 SELECT @Script AS Skript, @End AS Ende, @Time AS Zeit
 GO
 
-
 /*
-
 USE [arelium_TSQL_Chess_V015]
 GO
 
-DECLARE @EFN varchar(255)
+DECLARE @NameWhite nvarchar(30)
+DECLARE @NameBlack nvarchar(30)
+DECLARE @IsPlayerHumanWhite bit
+DECLARE @IsPlayerHumanBlack bit
+DECLARE @LevelWhite int
+DECLARE @LevelBlack int
+DECLARE @RemainingTimeWhiteInSeconds int
+DECLARE @RemainingTimeBlackInSeconds int
 
-SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
---SET @EFN = '6r1/6pp/7r/1B5K/1P3k2/N7/3R4/8 w - - 30 79'
+SET @NameWhite							= 'Anna'
+SET @NameBlack							= 'Torsten'
+SET @IsPlayerHumanWhite					= 'TRUE'
+SET @IsPlayerHumanBlack					= 'TRUE'
+SET @LevelWhite							= 2
+SET @LevelBlack							= 3
+SET @RemainingTimeWhiteInSeconds		= 3200
+SET @RemainingTimeBlackInSeconds		= 2800
 
-SELECT * FROM [Infrastructure].[fncEFN2Position](@EFN)
+EXECUTE [CurrentGame].[prcInitialisation] 
+   @NameWhite
+  ,@NameBlack
+  ,@IsPlayerHumanWhite
+  ,@IsPlayerHumanBlack
+  ,@LevelWhite
+  ,@LevelBlack
+  ,@RemainingTimeWhiteInSeconds
+  ,@RemainingTimeBlackInSeconds
 GO
 
+
+
 */
- 

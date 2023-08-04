@@ -109,6 +109,12 @@
           <AssociatedConnUserName />
           <FullPath>119 - View [Infrastructure].[vDashboard].sql</FullPath>
         </FileNode>
+        <FileNode Name="500 - Function [CurrentGame].[prcInitialisation].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>500 - Function [CurrentGame].[prcInitialisation].sql</FullPath>
+        </FileNode>
         <FileNode Name="612 - Function [Infrastructure].[fncPosition2EFN].sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
