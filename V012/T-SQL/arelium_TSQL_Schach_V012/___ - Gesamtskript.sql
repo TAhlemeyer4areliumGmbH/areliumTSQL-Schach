@@ -111,7 +111,8 @@ INSERT INTO ##System (DeploymentSystem)
 :r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\044 - Funktion [Spiel].[fncMoeglicheDamenaktionen] erstellen.sql"
 :r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\045 - Funktion [Spiel].[fncMoeglicheKoenigsaktionen] erstellen.sql"
 :r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\046 - Funktion [Spiel].[fncMoeglicheBauernaktionen] erstellen.sql"
-:r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\049 - Funktion [Spiel].[frcMoeglicheAktionen] erstellen.sql"
+:r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\048 - Funktion [Spiel].[frcMoeglicheAktionen] erstellen.sql"
+:r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\049 - Funktion [Spiel].[fncMoeglicheAktionenEFN] erstellen.sql"
 -- Schlaege ------------------------------------
 :r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\051 - Funktion [Spiel].[fncMoeglicheTurmschlaege] erstellen.sql"
 :r "C:\arelium_Repos\areliumTSQL-Schach\V012\T-SQL\arelium_TSQL_Schach_V012\052 - Funktion [Spiel].[fncMoeglicheSpringerschlaege] erstellen.sql"

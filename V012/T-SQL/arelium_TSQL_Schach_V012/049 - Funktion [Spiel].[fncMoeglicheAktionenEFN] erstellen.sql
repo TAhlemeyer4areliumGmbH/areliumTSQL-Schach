@@ -131,7 +131,7 @@ RETURNS @MoeglicheAktionenEFN TABLE
 				, [ZugIstEnPassant], [ZugIstKurzeRochade], [ZugIstLangeRochade], [UmwandlungsfigurBuchstabe]
 				, [LangeNotation], [KurzeNotationEinfach], [KurzeNotationKomplex]
 			)
-		SELECT * FROM [Spiel].[fncMoeglicheAktionen]('FALSE', @Bewertungsstellung)
+		SELECT 1, * FROM [Spiel].[fncMoeglicheAktionen]('FALSE', @EFN_Bewertungsstellung)
 
 	RETURN
 	END 
