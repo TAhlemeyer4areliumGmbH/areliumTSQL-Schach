@@ -99,14 +99,21 @@ GO
 
 
 
+
+-- ###############################################################################################
+-- ### Construction work #########################################################################
+-- ###############################################################################################
+
+
+
 --------------------------------------------------------------------------------------------------
--- Construction work -----------------------------------------------------------------------------
+-- Rook(s) ---------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
 CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsRook] 
 (
 	   @IsPlayerWhite		AS BIT
-	 , @EFN					AS VARCHAR(100)
+	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
 	 , @ActiveField			AS INTEGER								
 )
 RETURNS @PossibleActionsRook TABLE 
@@ -131,12 +138,6 @@ RETURNS @PossibleActionsRook TABLE
 		, [ShortNotationComplex]		VARCHAR(8)		NULL
 	) AS
 	BEGIN
-
-		DECLARE @AssessmentPosition	AS [dbo].[typePosition]	
-		
-		INSERT INTO @AssessmentPosition
-			SELECT * FROM [Infrastructure].[fncEFN2Position](@EFN)
-
 
 		INSERT INTO @PossibleActionsRook
 		(
@@ -188,18 +189,18 @@ RETURNS @PossibleActionsRook TABLE
 			AND [MZU].[FigureLetter]				= 'R'
 			AND [MZU].[StartField]					= @ActiveField
 
-			-- handelt es sich um einen Zug, ist das Zielfeld leer. Ist es hingegen ein 
-			-- Schlag, muss das Zielfeld besetzt sein
+			-- If it is a move, the target field is empty. If, on the other hand, it is a 
+			-- strike, the target field must be occupied.
 			AND (
 					([SPB].[FigureUTF8] = 160		AND [MZU].[IsActionCapture] = 'FALSE')
 					OR
 					([SPB].[FigureUTF8] <> 160		AND [MZU].[IsActionCapture] = 'TRUE')
 				)
 
-			-- ermittelt werden fuer jede Zugrichtung alle Felder bis zur
-			-- ersten Figur (egal welcher Farbe), die im Weg steht
+			-- For each direction of movement, all squares up to the
+			-- first piece (of any colour) that is in the way.
 
-			-- erste Figur im Weg nach rechts
+			-- first figure in the path to the right
 			AND [MZU].[TargetColumn] <= ISNULL(
 				(
 					SELECT MIN([Inside].[Column])
@@ -210,7 +211,7 @@ RETURNS @PossibleActionsRook TABLE
 						AND [Inside].[Row]			= [MZU].[StartRow]
 				), 'H')
 
-			-- erste Figur im Weg nach links
+			-- first figure in the path to the left
 			AND [MZU].[TargetColumn] >= ISNULL(
 				(
 					SELECT MAX([Inside].[Column])
@@ -221,7 +222,7 @@ RETURNS @PossibleActionsRook TABLE
 						AND [Inside].[Row]			= [MZU].[StartRow]
 				), 'A')
 
-			-- erste Figur im Weg nach oben
+			-- first figure in the way up
 			AND [MZU].[TargetRow] <= ISNULL(
 				(
 					SELECT MIN([Inside].[Row])
@@ -232,7 +233,7 @@ RETURNS @PossibleActionsRook TABLE
 						AND [Inside].[Row]			> [MZU].[StartRow]
 				), 8)
 
-			-- erste Figur im Weg nach unten
+			-- first figure in the way down
 			AND [MZU].[TargetRow] >= ISNULL(
 				(
 					SELECT MAX([Inside].[Row])
@@ -243,7 +244,7 @@ RETURNS @PossibleActionsRook TABLE
 						AND [Inside].[Row]			< [MZU].[StartRow]
 				), 1)
 
-			-- es darf keine Figur der eigenen Farbe geschlagen werden
+			-- no piece of your own colour may be captured
 			AND [SPB].[FigureUTF8] NOT IN 
 				(
 					SELECT [FigureUTF8] FROM [Infrastructure].[Figure]
@@ -254,6 +255,10 @@ RETURNS @PossibleActionsRook TABLE
 	END
 GO
 
+
+--------------------------------------------------------------------------------------------------
+-- Knight(s) -------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
 
 CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsKnight]
 (
@@ -333,15 +338,15 @@ RETURNS @PossibleActionsKnight TABLE
 		AND [MZU].[FigureLetter]					= 'N'
 		AND [MZU].[StartField]					= @ActiveField
 		AND 
-			(	-- ziehen
+			(	-- move
 				(
 					[SPB].[FigureUTF8]				= 160
 				AND
 					[MZU].[IsActionCapture]			= 'FALSE'
 				)
-			OR	-- schlagen
+			OR	-- capture
 				(
-					-- schlagen, aber nicht die eigenen Figuren
+					-- capture, but not your own pieces
 					[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
 										FROM [Infrastructure].[Figure]  
 										WHERE [IsPlayerWhite] = @IsPlayerWhite)
@@ -357,13 +362,17 @@ GO
 
 
 
+--------------------------------------------------------------------------------------------------
+-- Bishop(s) -------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+
 CREATE OR ALTER FUNCTION [CurrentGame].[fncPossiblectionsBishop]
 (
 	   @IsPlayerWhite		AS BIT
 	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
 	 , @ActiveField			AS INTEGER
 )
--- Definition der Rueckgabetabelle
+-- Definition of the return table
 RETURNS @MoeglicheLaeuferaktionen TABLE 
 	(
 		  [TheoreticalActionID]			BIGINT			NOT NULL
@@ -408,7 +417,7 @@ RETURNS @MoeglicheLaeuferaktionen TABLE
 			, [ShortNotationSimple]
 			, [ShortNotationComplex]
 		)
-	-- die passenden Werte zusammenstellen
+	-- Compile the appropriate values
 	SELECT 
 		  [MZU].[TheoreticalActionID]					AS [TheoreticalActionID]
 		, [MZU].[FigureLetter]							AS [FigureLetter]			
@@ -444,14 +453,14 @@ RETURNS @MoeglicheLaeuferaktionen TABLE
 				([SPB].[FigureUTF8] <> 160	AND [MZU].[IsActionCapture] = 'TRUE')
 			)
 		AND 
-					-- schlagen, aber nicht die eigenen Figuren
+					-- capture, but not your own pieces
 					[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
 										FROM [Infrastructure].[Figure]  
 										WHERE [IsPlayerWhite] = @IsPlayerWhite)
 		AND 
 			(
 				[MZU].[TargetField] IN 
-					-- vom Laeufer aus gesehen nach links oben
+					-- top left as seen from the bishop
 					(
 						SELECT DISTINCT [TA].[TargetField]
 						FROM [Infrastructure].[TheoreticalAction] AS [TA]
@@ -485,7 +494,7 @@ RETURNS @MoeglicheLaeuferaktionen TABLE
 
 					)
 
-				OR
+				OR --down left as seen from the bishop
 
 				[MZU].[TargetField] IN 
 					(
@@ -520,7 +529,7 @@ RETURNS @MoeglicheLaeuferaktionen TABLE
 															END
 					)
 
-				OR
+				OR -- down right as seen from the bishop
 
 				[MZU].[TargetField] IN 
 					(
@@ -555,7 +564,7 @@ RETURNS @MoeglicheLaeuferaktionen TABLE
 															END
 					)
 
-				OR
+				OR -- top right as seen from the bishop
 
 				[MZU].[TargetField] IN 
 					(
@@ -597,13 +606,17 @@ GO
 
 
 
-CREATE OR ALTER FUNCTION [CurrentGame].[fncMoeglicheDamenaktionen]
+--------------------------------------------------------------------------------------------------
+-- Queen(s) ---------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+
+CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsQueen]
 (
 	   @IsPlayerWhite		AS BIT
 	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
 	 , @ActiveField			AS INTEGER
 )
-RETURNS @MoeglicheDamenaktionen TABLE 
+RETURNS @PossibleActionsQueen TABLE 
 	(
 		  [TheoreticalActionID]			BIGINT			NOT NULL
 		, [FigureLetter]				CHAR(1)			NOT NULL
@@ -625,7 +638,7 @@ RETURNS @MoeglicheDamenaktionen TABLE
 		, [ShortNotationComplex]		VARCHAR(8)		NULL
 	) AS
 	BEGIN
-		INSERT INTO @MoeglicheDamenaktionen
+		INSERT INTO @PossibleActionsQueen
 		(
 			  [TheoreticalActionID]
 			, [FigureLetter]
@@ -669,10 +682,10 @@ RETURNS @MoeglicheDamenaktionen TABLE
 	INNER JOIN @AssessmentPosition						AS [SPB]
 		ON 1 = 1
 			AND [MZU].[TargetRow]				= [SPB].[Row]
-			AND [MZU].[TargetColumn]				= [SPB].[Column]
+			AND [MZU].[TargetColumn]			= [SPB].[Column]
 	WHERE 1 = 1
 		AND [MZU].[IsPlayerWhite]				= @IsPlayerWhite
-		AND [MZU].[FigureLetter]					= 'Q'
+		AND [MZU].[FigureLetter]				= 'Q'
 		AND [MZU].[StartField]					= @ActiveField
 		AND 
 			(
@@ -681,7 +694,7 @@ RETURNS @MoeglicheDamenaktionen TABLE
 				([SPB].[FigureUTF8] <> 160		AND [MZU].[IsActionCapture] = 'TRUE')
 			)
 		AND
-			-- schlagen, aber nicht die eigenen Figuren
+			-- capture, but not your own pieces
 			[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
 								FROM [Infrastructure].[Figure]  
 								WHERE [IsPlayerWhite] = @IsPlayerWhite)
@@ -937,6 +950,10 @@ GO
 
 
 
+--------------------------------------------------------------------------------------------------
+-- King ------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+
 CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibibleActionsKing]
 (
 	   @IsPlayerWhite		AS BIT
@@ -1021,7 +1038,7 @@ RETURNS @PossibleActionsKing TABLE
 				([SPB].[FigureUTF8] <> 160	AND [MZU].[IsActionCapture] = 'TRUE')
 			)
 		AND 
-					-- schlagen, aber nicht die eigenen Figuren
+					-- capture, but not your own pieces
 					[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
 										FROM [Infrastructure].[Figure]  
 										WHERE [IsPlayerWhite] = @IsPlayerWhite)
@@ -1031,13 +1048,17 @@ GO
 
 
 
-CREATE OR ALTER FUNCTION [CurrentGame].[fncMoeglicheBauernaktionen]
+--------------------------------------------------------------------------------------------------
+-- Pawn(s) ---------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+
+CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsPawn]
 (
 	   @IsPlayerWhite		AS BIT
 	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
 	 , @ActiveField			AS INTEGER
 )
-RETURNS @MoeglicheBauernaktionen TABLE 
+RETURNS @PossibleActionsPawn TABLE 
 	(
 		  [TheoreticalActionID]			BIGINT			NOT NULL
 		, [FigureLetter]				CHAR(1)			NOT NULL
@@ -1059,7 +1080,7 @@ RETURNS @MoeglicheBauernaktionen TABLE
 		, [ShortNotationComplex]		VARCHAR(8)		NULL
 	) AS
 	BEGIN
-		INSERT INTO @MoeglicheBauernaktionen
+		INSERT INTO @PossibleActionsPawn
 		(
 			  [TheoreticalActionID]
 			, [FigureLetter]
@@ -1110,23 +1131,23 @@ RETURNS @MoeglicheBauernaktionen TABLE
 		AND [MZU].[StartField]					= @ActiveField
 		AND 
 			(
-				(									-- normaler Zug, kein Schlag
+				(									-- normal move
 					    [SPB].[FigureUTF8]		= 160	
 					AND [MZU].[IsActionCapture]	= 'FALSE'
 					AND 
-						(							-- beim Doppelzug muss auch das Zwischenfeld 
-													-- leer sein
+						(							-- in the case of a double move, the intermediate field 
+													-- must be empty
 							SELECT [BS].[FigureUTF8]
 							FROM @AssessmentPosition		AS [BS]
 							WHERE 1 = 1
 								AND (
-										(			-- WEISS zieht nach oben
+										(			-- WHITE moves upwards
 											[BS].[Field] = [MZU].[StartField] + 1
 											AND
 											@IsPlayerWhite	= 'TRUE'
 										)
 										OR 
-										(			-- SCHWARZ zieht nach unten
+										(			-- BLACK moves downwards
 											[BS].[Field] = [MZU].[StartField] - 1
 											AND
 											@IsPlayerWhite	= 'FALSE'
@@ -1141,7 +1162,7 @@ RETURNS @MoeglicheBauernaktionen TABLE
 					    [SPB].[FigureUTF8]		<> 160	
 					AND [MZU].[IsActionCapture]	= 'TRUE'
 					AND 
-						-- schlagen, aber nicht die eigenen Figuren
+						-- capture, but not your own pieces
 						[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
 											FROM [Infrastructure].[Figure]  
 											WHERE [IsPlayerWhite] = @IsPlayerWhite)
@@ -1150,7 +1171,7 @@ RETURNS @MoeglicheBauernaktionen TABLE
 
 	UNION
 	
-	-- Sonderbereich fuer den "en passant"-Fall
+	-- Special area for the "en passant" case
 		SELECT DISTINCT
 		  [MZU].[TheoreticalActionID]					AS [TheoreticalActionID]
 		, [MZU].[FigureLetter]							AS [FigureLetter]			
@@ -1264,10 +1285,19 @@ GO
 
 
 
+-- #################################################################################################################
+
+-- -----------------------------------------------------------------------------------------------------------------
+-- Above there is a separate procedure for each type of figure. Here they are now addressed for a complete position 
+-- according to the pieces still on the board. Not only the position is transferred alone, as important information, 
+-- such as the question about the still permissible castles, would be lost. Instead, the EFN string of the position 
+-- is transferred, where such information is additionally coded.
+-- -----------------------------------------------------------------------------------------------------------------
+
 CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsAllPieces] 
 (
 	   @IsPlayerWhite		AS BIT
-	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
+	 , @EFN					AS VARCHAR(255)
 )
 RETURNS @PossibleActions TABLE	
 	(
@@ -1308,14 +1338,25 @@ RETURNS @PossibleActions TABLE
 		--DECLARE @FieldStart						AS TINYINT
 		--DECLARE @FieldTarget					AS TINYINT
 
+
+
+		-- --------------------------------------------------------------------------
+		-- Extract the position from the EFN string and assign it to a variable
+		-- --------------------------------------------------------------------------
+
+		DECLARE @AssessmentPosition				AS [dbo].[typePosition]	
+		
+		INSERT INTO @AssessmentPosition
+			SELECT 1, 1, * FROM [Infrastructure].[fncEFN2Position](@EFN)
+
 			
 		---- --------------------------------------------------------------------------
-		---- Damen
+		---- queen(s)
 		---- --------------------------------------------------------------------------
 
-		-- Es werden alle auf dem Brett befindlichen Damen ermittelt. fuer jede so gefundene Dame werden nun alle 
-		-- denkbaren und regelkonforme Aktionen notiert. Somit ist selbst nach mehrfacher Bauernumwandlung jede Dame 
-		-- beruecksichtigt.
+		-- All queens on the board are determined. For each queen found in this way, all conceivable and 
+		-- rule-compliant actions are noted. Thus, even after multiple pawn conversions, every queen 
+		-- is taken into account
 		DECLARE curActionQueen CURSOR FOR   
 			SELECT DISTINCT [Field]
 			FROM @AssessmentPosition
@@ -1348,13 +1389,12 @@ RETURNS @PossibleActions TABLE
 		DEALLOCATE curActionQueen; 
 
 
-		---- --------------------------------------------------------------------------
-		---- Tuerme
-		---- --------------------------------------------------------------------------
+		-- --------------------------------------------------------------------------
+		-- rook(s)
+		-- --------------------------------------------------------------------------
 
-		-- Es werden alle auf dem Brett befindlichen Tuerme ermittelt. fuer jeden so gefundenen Turm werden nun alle 
-		-- denkbaren und regelkonforme Aktionen notiert. Somit ist selbst nach mehrfacher Bauernumwandlung jeder Turm 
-		-- beruecksichtigt.	
+		-- All the rooks on the board are determined. For each rook found in this way, all conceivable and rule-compliant 
+		-- actions are now noted. Thus, even after multiple pawn conversions, every rook is taken into account.		
 		DECLARE curActionsRook CURSOR FOR   
 			SELECT DISTINCT [Field]
 			FROM @AssessmentPosition
@@ -1388,13 +1428,13 @@ RETURNS @PossibleActions TABLE
 		CLOSE curActionsRook;  
 		DEALLOCATE curActionsRook; 
 
-		---- --------------------------------------------------------------------------
-		---- Laeufer
-		---- --------------------------------------------------------------------------
+		-- --------------------------------------------------------------------------
+		-- bishop(s)
+		-- --------------------------------------------------------------------------
 
-		-- Es werden alle auf dem Brett befindlichen Laeufer ermittelt. fuer jeden so gefundenen Laeufer werden nun alle 
-		-- denkbaren und regelkonforme Aktionen notiert. Somit ist selbst nach mehrfacher Bauernumwandlung jeder Laeufer
-		-- beruecksichtigt.	
+		-- All the runners on the board are found. For each runner found in this way, all conceivable actions 
+		-- that conform to the rules are noted. Possible and rule-compliant actions are noted. Thus, even after multiple 
+		-- pawn conversions, each runner is taken into account.	
 		DECLARE curActionsBishop CURSOR FOR   
 			SELECT DISTINCT [Field]
 			FROM @AssessmentPosition
@@ -1429,12 +1469,12 @@ RETURNS @PossibleActions TABLE
 		DEALLOCATE curActionsBishop; 
 
 		-- --------------------------------------------------------------------------
-		-- Springer
+		-- Knight(s)
 		-- --------------------------------------------------------------------------
 
-		-- Es werden alle auf dem Brett befindlichen Springer ermittelt. fuer jeden so gefundenen Springer werden nun alle 
-		-- denkbaren und regelkonforme Aktionen notiert. Somit ist selbst nach mehrfacher Bauernumwandlung jeder Springer
-		-- beruecksichtigt.	
+		-- All the knights on the board are found. For each knight found in this way, all conceivable actions 
+		-- in accordance with the rules are noted. Possible and rule-compliant actions are noted. Thus, even after 
+		-- multiple pawn conversions, each knight is taken into account.	
 		DECLARE curActionsKnight CURSOR FOR   
 			SELECT DISTINCT [Field]
 			FROM @AssessmentPosition
@@ -1467,10 +1507,10 @@ RETURNS @PossibleActions TABLE
 		DEALLOCATE curActionsKnight; 
 
 		---- --------------------------------------------------------------------------
-		---- Koenig
+		---- king
 		---- --------------------------------------------------------------------------
 
-		-- Es ist nur genau ein farblich passender Koenig auf den Spielfeld. Eine Bauernumwandlung ist nicht zu beruecksichtigen.	
+		-- There is only one king of the same colour on the board. A pawn conversion is not to be taken into account.	
 		SET @FieldKing = (SELECT [Field] FROM @AssessmentPosition WHERE [FigureLetter] = 'K' AND [IsPlayerWhite] = @IsPlayerWhite)
 		INSERT INTO @PossibleActions
 		(
@@ -1488,10 +1528,10 @@ RETURNS @PossibleActions TABLE
 
 
 		---- --------------------------------------------------------------------------
-		---- Bauern
+		---- pawn(s)
 		---- --------------------------------------------------------------------------
 
-		-- Es sind maximal 16 Bauern auf den Spielfeld. Eine Bauernumwandlung ist nicht zu beruecksichtigen.	
+		-- There is a maximum of 16 pawns on the board. A pawn conversion is not to be taken into account.	
 		DECLARE curActionsPawn CURSOR FOR   
 			SELECT DISTINCT [Field]
 			FROM @AssessmentPosition
@@ -1527,306 +1567,65 @@ RETURNS @PossibleActions TABLE
 
 
 
-		---- --------------------------------------------------------------------------
-		---- illegale Zuege werden wieder rausgefiltert
-		---- --------------------------------------------------------------------------
+		-- ##########################################################################
+		-- ### Illegal actions are filtered out again ###############################
+		-- ##########################################################################
 
 
 
 
-		---- --------------------------------------------------------------------------
-		---- Rochaden
-		---- --------------------------------------------------------------------------
+		-- --------------------------------------------------------------------------
+		-- Rochades
+		-- --------------------------------------------------------------------------
 
-		-- es kann vorkommen, dass eine Rochade als "gueltiger" Koenigszug ermittelt 
-		-- wird, auch wenn die Spielregeln in dieser Situation eine Rochade 
-		-- eigentlich unterbinden. Dies liegt daran, dass die Rochade einer der 
-		-- drei Zuege (die anderen sind "en passant" und die Bauerumwandlung) ist, 
-		-- bei dem gleich zwei Figuren betroffen sind. Dies kann durch eine einfache 
-		-- Anfrage gegen die Tabelle [Infrastructure].[TheoreticalAction] nicht 
-		-- sauber geprueft werden, da weitere Daten notwewndig sind. Somit sind 
-		-- evtl. fehlerhaft erfasste Zugmoeglichkeiten wieder zu entfernen...
+		-- It can happen that castling is determined as a "valid" king move, since here only the current game 
+		-- situation is analysed from a snapshot. Often, however, the rules of the game prevent castling - for 
+		-- example, because a piece has already been moved, which is not necessarily visible from the current 
+		-- view of the board. Therefore, the EFN string must be evaluated and individual actions may 
+		-- have to be discarded.
+		
+		DECLARE @BeginOfCastles		AS TINYINT
+		DECLARE @Castles			AS VARCHAR(4)
+		
+		SET @BeginOfCastles			= [Library].[fncCharIndexNG2](' ', @EFN, 2) + 1
+		SET @Castles				= LEFT(RIGHT(@EFN, LEN(@EFN) - @BeginOfCastles), CHARINDEX(RIGHT(@EFN, LEN(@EFN) - @BeginOfCastles), ' ', 1))
 
-		-- ***************
-		-- *** WEISS *****
-		-- ***************
-		IF (SELECT [IstKurzeRochadeErlaubt] FROM [CurrentGame].[Konfiguration] WHERE [IsPlayerWhite] = 'TRUE') = 'TRUE'
-			OR (SELECT [IstLangeRochadeErlaubt] FROM [CurrentGame].[Konfiguration] WHERE [IsPlayerWhite] = 'TRUE') = 'TRUE'
-		BEGIN
-
-			-- --------------------------------------------------------------------------------------
-			-- Eine Rochade ist nur moeglich, wenn der Koenig an der 
-			-- "richtigen" Position steht (also auch nicht geschlagen wurden)
-			-- --------------------------------------------------------------------------------------
-			IF EXISTS (SELECT * FROM @AssessmentPosition WHERE [Field] = 33 AND [FigureLetter] = 'K' AND [IsPlayerWhite] = 'TRUE')
-			BEGIN
-				-- --------------------------------------------------------------------------------------
-				-- eine Rochade ist nur dann moeglich, wenn der Koenig noch nie gezogen
-				-- hat - selbst wenn er zwischenzeitlich auf das Ausgangsfeld zurueckgekehrt ist.  
-				-- Es reicht also in der Notation zu ueberpruefen, ob es einen Zug/Schlag in 
-				-- der Partiehistorie von dem Ausgangsfeld weg gegeben hat...
-				-- --------------------------------------------------------------------------------------
-				IF (SELECT COUNT(*) FROM [CurrentGame].[Notation] WHERE [LongNotation] LIKE 'K%' AND [IsPlayerWhite] = 'TRUE') = 0
-				BEGIN
-					-- --------------------------------------------------------------------------------------
-					-- Eine Rochade ist nur moeglich, wenn der zugehoeriger Turm an der 
-					-- "richtigen" Position steht (also auch nicht geschlagen wurden)
-					 --------------------------------------------------------------------------------------
-
-					IF (SELECT [IstKurzeRochadeErlaubt] FROM [CurrentGame].[Konfiguration] WHERE [IsPlayerWhite] = @IsPlayerWhite) = 'TRUE'
-					BEGIN
-					
-						-- kurze Rochade
-						IF EXISTS (SELECT * FROM @AssessmentPosition WHERE [Field] = 57 AND [FigureLetter] = 'T' AND [IsPlayerWhite] = 'TRUE')
-						BEGIN
-							-- --------------------------------------------------------------------------------------
-							-- eine Rochade ist nur dann moeglich, wenn der Turm noch nie gezogen
-							-- hat - selbst wenn er auf das Ausgangsfeld zurueckgekehrt ist. Es reicht also 
-							-- in der Notation zu ueberpruefen, ob es einen Zug/Schlag in der Partiehistorie
-							-- von dem Ausgangsfeld weg gegeben hat...
-							-- --------------------------------------------------------------------------------------
-							IF (SELECT COUNT(*) FROM [CurrentGame].[Notation] WHERE [LongNotation] LIKE 'Th1%' AND [IsPlayerWhite] = 'TRUE') = 0
-							BEGIN
-								DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'ABCDEFG'
-							--	-- --------------------------------------------------------------------------------------
-							--	-- eine Rochade ist nur dann moeglich, wenn der Koenig nicht ueber ein gerade angegriffenes
-							--	-- Feld ziehen muss. Alle Felder (seinen aktuellen Standort, das Zielfeld und alle Felder 
-							--	-- dazwischen - nicht jedoch Felder, die nur vom Turmzug betroffen sind) duerfen daher nicht
-							--	-- im "Schach" stehen
-							--	-- --------------------------------------------------------------------------------------
-							--	IF EXISTS (SELECT * FROM [CurrentGame].[fncVirtuelleSchlaege] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 33))			-- Feld E1 angegriffen
-							--		OR EXISTS (SELECT * FROM [CurrentGame].[fncVirtuelleSchlaege] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 41))		-- Feld F1 angegriffen
-							--		OR EXISTS (SELECT * FROM [CurrentGame].[fncVirtuelleSchlaege] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 49))		-- Feld G1 angegriffen
-							--	BEGIN
-							--		DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o' AND [IsPlayerWhite] = 'TRUE'				-- kurze Rochade unmoeglich
-							--	END
-							END
-							ELSE
-							BEGIN
-								DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o' AND [IsPlayerWhite] = 'TRUE'				-- kurze Rochade unmoeglich
-							END
-						END
-						ELSE
-						BEGIN
-							DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o' AND [IsPlayerWhite] = 'TRUE'					-- kurze Rochade unmoeglich
-						END
-					END
-					ELSE
-					BEGIN
-						DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o' AND [IsPlayerWhite] = 'TRUE'					-- kurze Rochade unmoeglich
-					END
-
-					IF (SELECT [IstLangeRochadeErlaubt] FROM [CurrentGame].[Konfiguration] WHERE [IsPlayerWhite] = @IsPlayerWhite) = 'TRUE'
-					BEGIN
-					
-						-- lange Rochade
-						IF EXISTS (SELECT * FROM @AssessmentPosition WHERE [Field] =  1 AND [FigureLetter] = 'T' AND [IsPlayerWhite] = 'TRUE')
-						BEGIN
-							-- --------------------------------------------------------------------------------------
-							-- eine Rochade ist nur dann moeglich, wenn der Turm noch nie gezogen
-							-- hat - selbst wenn er auf das Ausgangsfeld zurueckgekehrt ist. Es reicht also 
-							-- in der Notation zu ueberpruefen, ob es einen Zug/Schlag in der Partiehistorie
-							-- von dem Ausgangsfeld weg gegeben hat...
-							-- --------------------------------------------------------------------------------------
-							IF (SELECT COUNT(*) FROM [CurrentGame].[Notation] WHERE [LongNotation] LIKE 'Ta1%' AND [IsPlayerWhite] = 'TRUE') > 0
-							BEGIN
-								-- --------------------------------------------------------------------------------------
-								-- eine Rochade ist nur dann moeglich, wenn der Koenig nicht ueber ein gerade angegriffenes
-								-- Feld ziehen muss. Alle Felder (seinen aktuellen Standort, das Zielfeld und alle Felder 
-								-- dazwischen - nicht jedoch Felder, die nur vom Turmzug betroffen sind) duerfen daher nicht
-								-- im "Schach" stehen
-								-- --------------------------------------------------------------------------------------
-								IF (SELECT COUNT(*) FROM [CurrentGame].[frcMoeglicheVirtuelleSchlaegeAufFeld] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 33)) <> 0			-- Feld E1 angegriffen
-									OR (SELECT COUNT(*) FROM [CurrentGame].[frcMoeglicheVirtuelleSchlaegeAufFeld] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 25)) <> 0		-- Feld D1 angegriffen
-									OR (SELECT COUNT(*) FROM [CurrentGame].[frcMoeglicheVirtuelleSchlaegeAufFeld] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 17)) <> 0		-- Feld C1 angegriffen
-								BEGIN
-									DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o-o' AND [IsPlayerWhite] = 'TRUE'			-- lange Rochade unmoeglich
-								END
-
-							END
-							ELSE
-							BEGIN
-								DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o-o' AND [IsPlayerWhite] = 'TRUE'			-- lange Rochade unmoeglich
-							END
-						END
-						ELSE
-						BEGIN
-							DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o-o' AND [IsPlayerWhite] = 'TRUE'				-- lange Rochade unmoeglich
-						END
-					END
-					ELSE
-					BEGIN
-						DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o-o' AND [IsPlayerWhite] = 'TRUE'				-- lange Rochade unmoeglich
-					END
-				END
-				ELSE
-				BEGIN
-					DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-%' AND [IsPlayerWhite] = 'TRUE'						-- lange und kurze Rochade unmoeglich
-				END
-			END
-			ELSE
-			BEGIN
-				DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-%' AND [IsPlayerWhite] = 'TRUE'							-- lange und kurze Rochade unmoeglich
-			END
-		END
-		ELSE
-		BEGIN
-			DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-%' AND [IsPlayerWhite] = 'TRUE'							-- lange und kurze Rochade unmoeglich
-		END
-
-		-- ***************
-		-- *** SCHWARZ ***
-		-- ***************
-
-		IF (SELECT [IstKurzeRochadeErlaubt] FROM [CurrentGame].[Konfiguration] WHERE [IsPlayerWhite] = 'FALSE') = 'TRUE'
-			OR (SELECT [IstLangeRochadeErlaubt] FROM [CurrentGame].[Konfiguration] WHERE [IsPlayerWhite] = 'FALSE') = 'TRUE'
-		BEGIN
-
-			-- --------------------------------------------------------------------------------------
-			-- Eine Rochade ist nur moeglich, wenn der Koenig an der 
-			-- "richtigen" Position steht (also auch nicht geschlagen wurden)
-			-- --------------------------------------------------------------------------------------
-			IF EXISTS (SELECT * FROM @AssessmentPosition WHERE [Field] = 40 AND [FigureLetter] = 'K' AND [IsPlayerWhite] = 'FALSE')
-			BEGIN
-				-- --------------------------------------------------------------------------------------
-				-- eine Rochade ist nur dann moeglich, wenn der Koenig noch nie gezogen
-				-- hat - selbst wenn er zwischenzeitlich auf das Ausgangsfeld zurueckgekehrt ist.  
-				-- Es reicht also in der Notation zu ueberpruefen, ob es einen Zug/Schlag in 
-				-- der Partiehistorie von dem Ausgangsfeld weg gegeben hat...
-				-- --------------------------------------------------------------------------------------
-				IF (SELECT COUNT(*) FROM [CurrentGame].[Notation] WHERE [LongNotation] LIKE 'K%' AND [IsPlayerWhite] = 'FALSE') = 0
-				BEGIN
-					-- --------------------------------------------------------------------------------------
-					-- Eine Rochade ist nur moeglich, wenn der zugehoeriger Turm an der 
-					-- "richtigen" Position steht (also auch nicht geschlagen wurden)
-					 --------------------------------------------------------------------------------------
-
-					IF (SELECT [IstKurzeRochadeErlaubt] FROM [CurrentGame].[Konfiguration] WHERE [IsPlayerWhite] = @IsPlayerWhite) = 'FALSE'
-					BEGIN
-					
-						-- kurze Rochade
-						IF EXISTS (SELECT * FROM @AssessmentPosition WHERE [Field] = 64 AND [FigureLetter] = 'T' AND [IsPlayerWhite] = 'FALSE')
-						BEGIN
-							-- --------------------------------------------------------------------------------------
-							-- eine Rochade ist nur dann moeglich, wenn der Turm noch nie gezogen
-							-- hat - selbst wenn er auf das Ausgangsfeld zurueckgekehrt ist. Es reicht also 
-							-- in der Notation zu ueberpruefen, ob es einen Zug/Schlag in der Partiehistorie
-							-- von dem Ausgangsfeld weg gegeben hat...
-							-- --------------------------------------------------------------------------------------
-							IF (SELECT COUNT(*) FROM [CurrentGame].[Notation] WHERE [LongNotation] LIKE 'Th8%' AND [IsPlayerWhite] = 'FALSE') = 0
-							BEGIN
-								-- --------------------------------------------------------------------------------------
-								-- eine Rochade ist nur dann moeglich, wenn der Koenig nicht ueber ein gerade angegriffenes
-								-- Feld ziehen muss. Alle Felder (seinen aktuellen Standort, das Zielfeld und alle Felder 
-								-- dazwischen - nicht jedoch Felder, die nur vom Turmzug betroffen sind) duerfen daher nicht
-								-- im "Schach" stehen
-								-- --------------------------------------------------------------------------------------
-								IF (SELECT COUNT(*) FROM [CurrentGame].[fncVirtuelleSchlaege] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 40)) <> 0		-- Feld E8 angegriffen
-									OR (SELECT COUNT(*) FROM [CurrentGame].[fncVirtuelleSchlaege] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 48)) <> 0	-- Feld F8 angegriffen
-									OR (SELECT COUNT(*) FROM [CurrentGame].[fncVirtuelleSchlaege] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 56)) <> 0	-- Feld G8 angegriffen
-								BEGIN
-									DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o' AND [IsPlayerWhite] = 'FALSE'				-- kurze Rochade unmoeglich
-								END
-							END
-							ELSE
-							BEGIN
-								DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o' AND [IsPlayerWhite] = 'FALSE'				-- kurze Rochade unmoeglich
-							END
-						END
-						ELSE
-						BEGIN
-							DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o' AND [IsPlayerWhite] = 'FALSE'					-- kurze Rochade unmoeglich
-						END
-					END
-					ELSE
-					BEGIN
-						DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o' AND [IsPlayerWhite] = 'FALSE'					-- kurze Rochade unmoeglich
-					END
-
-
-					IF (SELECT [IstLangeRochadeErlaubt] FROM [CurrentGame].[Konfiguration] WHERE [IsPlayerWhite] = @IsPlayerWhite) = 'FALSE'
-					BEGIN
-					
-						-- lange Rochade
-						IF EXISTS (SELECT * FROM @AssessmentPosition WHERE [Field] =  8 AND [FigureLetter] = 'T' AND [IsPlayerWhite] = 'FALSE')
-						BEGIN
-							-- --------------------------------------------------------------------------------------
-							-- eine Rochade ist nur dann moeglich, wenn der Turm noch nie gezogen
-							-- hat - selbst wenn er auf das Ausgangsfeld zurueckgekehrt ist. Es reicht also 
-							-- in der Notation zu ueberpruefen, ob es einen Zug/Schlag in der Partiehistorie
-							-- von dem Ausgangsfeld weg gegeben hat...
-							-- --------------------------------------------------------------------------------------
-							IF (SELECT COUNT(*) FROM [CurrentGame].[Notation] WHERE [LongNotation] LIKE 'Ta8%' AND [IsPlayerWhite] = 'FALSE') > 0
-							BEGIN
-								-- --------------------------------------------------------------------------------------
-								-- eine Rochade ist nur dann moeglich, wenn der Koenig nicht ueber ein gerade angegriffenes
-								-- Feld ziehen muss. Alle Felder (seinen aktuellen Standort, das Zielfeld und alle Felder 
-								-- dazwischen - nicht jedoch Felder, die nur vom Turmzug betroffen sind) duerfen daher nicht
-								-- im "Schach" stehen
-								-- --------------------------------------------------------------------------------------
-								IF EXISTS (SELECT * FROM [CurrentGame].[frcMoeglicheVirtuelleSchlaegeAufFeld] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 40))			-- Feld E8 angegriffen
-									OR EXISTS (SELECT * FROM [CurrentGame].[frcMoeglicheVirtuelleSchlaegeAufFeld] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 32))		-- Feld D8 angegriffen
-									OR EXISTS (SELECT * FROM [CurrentGame].[frcMoeglicheVirtuelleSchlaegeAufFeld] ((@IsPlayerWhite + 1) % 2, @AssessmentPosition, 24))		-- Feld C8 angegriffen
-								BEGIN
-									DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o-o' AND [IsPlayerWhite] = 'FALSE'			-- lange Rochade unmoeglich
-								END
-
-							END
-							ELSE
-							BEGIN
-								DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o-o' AND [IsPlayerWhite] = 'FALSE'			-- lange Rochade unmoeglich
-							END
-						END
-						ELSE
-						BEGIN
-							DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o-o' AND [IsPlayerWhite] = 'FALSE'				-- lange Rochade unmoeglich
-						END
-					END
-					ELSE
-					BEGIN
-						DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-o-o' AND [IsPlayerWhite] = 'FALSE'				-- lange Rochade unmoeglich
-					END
-				END
-				ELSE
-				BEGIN
-					DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-%' AND [IsPlayerWhite] = 'FALSE'						-- lange und kurze Rochade unmoeglich
-				END
-			END
-			ELSE
-			BEGIN
-				DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-%' AND [IsPlayerWhite] = 'FALSE'							-- lange und kurze Rochade unmoeglich
-			END
-		END
-		ELSE
-		BEGIN
-			DELETE FROM @PossibleActions WHERE [LongNotation] LIKE 'o-%' AND [IsPlayerWhite] = 'FALSE'							-- lange und kurze Rochade unmoeglich
-		END
-
+		IF CHARINDEX(@Castles, 'K', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o' 
+		IF CHARINDEX(@Castles, 'k', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o'
+		IF CHARINDEX(@Castles, 'Q', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o-o'
+		IF CHARINDEX(@Castles, 'q', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o-o'
+		
 	
 
-		---- --------------------------------------------------------------------------
-		---- en passant
-		---- --------------------------------------------------------------------------
+		-- --------------------------------------------------------------------------
+		-- en passant
+		-- --------------------------------------------------------------------------
 
-		-- es kann vorkommen, dass ein "en Passant"-Schlag als "gueltiger" Schlag ermittelt 
-		-- wird, auch wenn die Spielregeln in dieser Situation einen "en Passant"-Schlag
-		-- eigentlich unterbinden. Dies liegt daran, dass der "en Passant"-Schlag einer der 
-		-- drei Zuege (die anderen sind Rochade und die Bauerumwandlung) ist, 
-		-- bei dem gleich zwei Figuren betroffen sind. Dies kann durch eine einfache 
-		-- Anfrage gegen die Tabelle [Infrastructure].[TheoreticalAction] nicht 
-		-- sauber geprueft werden, da weitere Daten notwewndig sind. Somit sind 
-		-- evtl. fehlerhaft erfasste Zugmoeglichkeiten wieder zu entfernen...
+		-- It can happen that "en passant" is determined as a "valid" pawn move, since here only the current game 
+		-- situation is analysed from a snapshot. Often, however, the rules of the game prevent "en passant" - for 
+		-- example, because the pawn's double move was already several moves ago, which is not necessarily visible 
+		-- from the current view of the board. Therefore, the EFN string must be evaluated and individual 
+		-- actions may have to be discarded.
 
-		--DELETE FROM @PossibleActions
-		--WHERE 1 = 1
-		--	AND [LongNotation] like '%e.p.'	
-		--	AND [IsPlayerWhite] = 'FALSE'
-		--	AND (
-		--			[CurrentGame].[fncIstFeldBedroht]([IsPlayerWhite], @AssessmentPosition, 24) = 'TRUE'
-		--			OR
-		--			[CurrentGame].[fncIstFeldBedroht]([IsPlayerWhite], @AssessmentPosition, 32) = 'TRUE'
-		--		)
-		--		-- WEITERE BEDINGUNGEN ZU IMPLEMENTIEREN
+		DECLARE @BeginOfEnPassant	AS TINYINT
+		DECLARE @EnPassant			AS CHAR(2)
+		
+		SET @BeginOfEnPassant		= [Library].[fncCharIndexNG2](' ', @EFN, 3) + 1
+		SET @EnPassant				= LEFT(RIGHT(@EFN, LEN(@EFN) - @BeginOfEnPassant), 2)
+
+		IF @EnPassant <> '- ' 
+		BEGIN
+			-- the EFN string contains the information that no "en passant" situation exists
+			DELETE FROM @PossibleActions WHERE [LongNotation] like '%e.p.'
+		END
+		ELSE
+		BEGIN
+			-- it can only be struck "en passant" on the field transmitted in the EFN string. This can be up to 2 
+			-- possible captures by the opponent! (my pawn has completed a double move exactly between two pawns of the opponent).
+
+			DELETE FROM @PossibleActions WHERE [LongNotation] like '%e.p.' AND [LongNotation] NOT like '%' + @EnPassant  + 'e.p.'
+			
+		END
 
 	RETURN
 	END 
@@ -1850,6 +1649,21 @@ SELECT @Script AS Skript, @End AS Ende, @Time AS Zeit
 GO
 
 /*
+
+USE [arelium_TSQL_Chess_V015]
+GO
+
+DECLARE @EFN varchar(255)
+
+SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+--SET @EFN = '6r1/6pp/7r/1B5K/1P3k2/N7/3R4/8 w - - 30 79'
+
+SELECT * FROM [Infrastructure].[fncEFN2Position](@EFN)
+GO
+
+
+
+
 -- Test der Funktion [CurrentGame].[fncMoeglicheTurmaktionen]
 
 DECLARE @ASpielbrett	AS [dbo].[[dbo].[typePosition]]

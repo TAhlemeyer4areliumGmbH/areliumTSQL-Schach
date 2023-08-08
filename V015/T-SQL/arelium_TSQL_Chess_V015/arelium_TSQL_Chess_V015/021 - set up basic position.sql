@@ -89,7 +89,7 @@ GO
 --------------------------------------------------------------------------------------------------
 
 -- The UPDATE commands are stored in a procedure and can therefore be easily called from anywhere. 
-CREATE OR ALTER PROCEDURE [Infrastructure].[prcBuildBasicPosition]
+CREATE OR ALTER PROCEDURE [Infrastructure].[prcSetUpBasicPosition]
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -267,7 +267,7 @@ GO
 USE [arelium_TSQL_Chess_V015]
 GO
 
-EXEC [Infrastructure].[prcBuildBasicPosition]
+EXEC [Infrastructure].[prcSetUpBasicPosition]
 GO
 
 */

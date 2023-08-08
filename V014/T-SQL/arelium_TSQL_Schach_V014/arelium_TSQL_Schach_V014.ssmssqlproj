@@ -1,0 +1,203 @@
+<?xml version="1.0"?>
+<SqlWorkbenchSqlProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Name="arelium_TSQL_Schach_V014">
+  <Items>
+    <LogicalFolder Name="Verbindungen" Type="2" Sorted="true">
+      <Items>
+        <ConnectionNode Name="(local):DESKTOP-OGDDQAL\Torst">
+          <Created>2023-07-03T00:08:19.4539297+02:00</Created>
+          <Type>SQL</Type>
+          <Server>(local)</Server>
+          <UserName />
+          <Authentication>Windows-Authentifizierung</Authentication>
+          <InitialDB>master</InitialDB>
+          <LoginTimeout>30</LoginTimeout>
+          <ExecutionTimeout>0</ExecutionTimeout>
+          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
+          <ApplicationName>Microsoft SQL Server Management Studio - Abfrage</ApplicationName>
+        </ConnectionNode>
+      </Items>
+    </LogicalFolder>
+    <LogicalFolder Name="Abfragen" Type="0" Sorted="true">
+      <Items>
+        <FileNode Name="000 - ---------- Strukturen ----------------.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>000 - ---------- Strukturen ----------------.sql</FullPath>
+        </FileNode>
+        <FileNode Name="002 - Datenbank erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>002 - Datenbank erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="010 - Datenstrukturen aufbauen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>010 - Datenstrukturen aufbauen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="012 - Stammdaten initial einfuegen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>012 - Stammdaten initial einfuegen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="021 - Prozedur [Infrastruktur].[prcGrundstellungAufbauen] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>021 - Prozedur [Infrastruktur].[prcGrundstellungAufbauen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="030 - ---------- Datenbasis aufbereiten ------------.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>030 - ---------- Datenbasis aufbereiten ------------.sql</FullPath>
+        </FileNode>
+        <FileNode Name="031 - Prozedur [Infrastruktur].[prcTheoretischeAktionenInitialisieren] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>031 - Prozedur [Infrastruktur].[prcTheoretischeAktionenInitialisieren] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="040 - ---------- Aktionen ----------------.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>040 - ---------- Aktionen ----------------.sql</FullPath>
+        </FileNode>
+        <FileNode Name="041 - Funktion [AktuellesSpiel].[fncMoeglicheTurmaktionen] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>041 - Funktion [AktuellesSpiel].[fncMoeglicheTurmaktionen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="042 - Funktion [AktuellesSpiel].[fncMoeglicheSpringeraktionen] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>042 - Funktion [AktuellesSpiel].[fncMoeglicheSpringeraktionen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="043 - Funktion [AktuellesSpiel].[fncMoeglicheLaeuferaktionen] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>043 - Funktion [AktuellesSpiel].[fncMoeglicheLaeuferaktionen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="044 - Funktion [AktuellesSpiel].[fncMoeglicheDamenaktionen] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>044 - Funktion [AktuellesSpiel].[fncMoeglicheDamenaktionen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="045 - Funktion [AktuellesSpiel].[fncMoeglicheKoenigsaktionen] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>045 - Funktion [AktuellesSpiel].[fncMoeglicheKoenigsaktionen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="046 - Funktion [AktuellesSpiel].[fncMoeglicheBauernaktionen] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>046 - Funktion [AktuellesSpiel].[fncMoeglicheBauernaktionen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="048 - Funktion [AktuellesSpiel].[frcMoeglicheAktionen] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>048 - Funktion [AktuellesSpiel].[frcMoeglicheAktionen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="083 - Funktion [AktuellesSpiel].[fncIstWeissAmZug] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>083 - Funktion [AktuellesSpiel].[fncIstWeissAmZug] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="109 - Funktion [Statistik].[fncAktuelleStellungBewerten] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>109 - Funktion [Statistik].[fncAktuelleStellungBewerten] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="110 - ---------- Anzeigen ----------------.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>110 - ---------- Anzeigen ----------------.sql</FullPath>
+        </FileNode>
+        <FileNode Name="111 - View [AktuellesSpiel].[vGeschlageneFiguren] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>111 - View [AktuellesSpiel].[vGeschlageneFiguren] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="112 - View [AktuellesSpiel].[vTeilnotationAnzeigen] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>112 - View [AktuellesSpiel].[vTeilnotationAnzeigen] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="114 - ÄÄÄ View [Bibliothek].[vEroeffnungsbibliothek] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>114 - ÄÄÄ View [Bibliothek].[vEroeffnungsbibliothek] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="115 - Funktionen [Bibliothek].[fncCharIndexNG] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>115 - Funktionen [Bibliothek].[fncCharIndexNG] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="116 - Funktion [Infrastruktur].[fncSekundenAlsUhrzeitFormatieren] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>116 - Funktion [Infrastruktur].[fncSekundenAlsUhrzeitFormatieren] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="117 - View [Bibliothek].[vSchonmalGespielt] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>117 - View [Bibliothek].[vSchonmalGespielt] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="118 - View [Infrastruktur].[vLogo] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>118 - View [Infrastruktur].[vLogo] erstellen.sql</FullPath>
+        </FileNode>
+        <FileNode Name="127 - View [Infrastruktur].[vSpielbrett] erstellen.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>127 - View [Infrastruktur].[vSpielbrett] erstellen.sql</FullPath>
+        </FileNode>
+      </Items>
+    </LogicalFolder>
+    <LogicalFolder Name="Sonstiges" Type="3" Sorted="true">
+      <Items>
+        <FileNode Name="bekannte Fehler.txt">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>bekannte Fehler.txt</FullPath>
+        </FileNode>
+        <FileNode Name="Brettansicht.txt">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>Brettansicht.txt</FullPath>
+        </FileNode>
+        <FileNode Name="Featurewuensche.txt">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>Featurewuensche.txt</FullPath>
+        </FileNode>
+      </Items>
+    </LogicalFolder>
+  </Items>
+</SqlWorkbenchSqlProject>

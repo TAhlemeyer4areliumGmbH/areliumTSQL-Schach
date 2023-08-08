@@ -111,6 +111,7 @@ GO
 	DROP TABLE IF EXISTS [CurrentGame].[PossibleAction]
 	DROP TABLE IF EXISTS [CurrentGame].[Configuration]
 	DROP TABLE IF EXISTS [CurrentGame].[ActionTracing]
+	DROP TABLE IF EXISTS [CurrentGame].[GameStatus] 
 
 	DROP TABLE IF EXISTS [Library].[GameMetadata]
 	DROP TABLE IF EXISTS [Library].[GrandmasterGame]
@@ -175,14 +176,12 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.types WHERE name = N'typePosition')
 	CREATE TYPE typePosition 
 		AS TABLE ( 
-			  [PositionID]					BIGINT						NOT NULL
-			, [SearchDepth]					INTEGER						NOT NULL
-			, [Column]						CHAR(1)						NOT NULL
+			  [Column]						CHAR(1)						NOT NULL
 			, [Row]							TINYINT						NOT NULL
 			, [Field]						TINYINT						NOT NULL
 			, [IsPlayerWhite] 				BIT							NULL
-			, [FigureLetter]				CHAR(1)						NOT NULL
-			, [FigureUTF8]					BIGINT						NOT NULL
+			, [FigureLetter]				CHAR(1)						NULL
+			, [FigureUTF8]					BIGINT						NULL
 		)
 GO
 
@@ -237,6 +236,21 @@ GO
 -- Tables
 -- ------------------------------------------------------------------------------------------------
 -- Tables are used for permanent storage of data - 
+
+
+
+
+CREATE TABLE [CurrentGame].[GameStatus]  
+(  
+      [IsPlayerWhite] 					BIT				NOT NULL
+	, [RemainingTimeInSeconds]			INTEGER			NOT NULL
+	, [TimestampLastOpponentMove]		DATETIME2		NULL
+	, [IsShortCastlingStillAllowed]		BIT				NOT NULL
+	, [IsLongCastlingStillAllowed]		BIT				NOT NULL
+	, [Number50ActionsRule]				TINYINT			NOT NULL
+	, [IsEnPassantPossible]				CHAR(2)			NULL			-- Coordinate of pawn,who may be captured using "en passant" rule 
+)  
+
 
 
 -- This table takes data of type GEOGRAPHY to paint the game logo with it
@@ -391,9 +405,9 @@ CREATE TABLE [Infrastructure].[GameBoard](
 	, [Row]						TINYINT		NOT NULL						-- 1-8
 	, [Field]					TINYINT		NOT NULL						-- A1 = 1, A2 = 2, ..., B1 = 9, ...,  H8 = 64
 	, [IsPlayerWhite] 			BIT			NULL							-- 1 = TRUE
-	, [FigureLetter]			CHAR(1)						NOT NULL		-- ' ', 'P', 'B', 'N', 'R', 'K', 'Q' 
-		CHECK ([FigureLetter] IN (CHAR(160), ' ', 'P', 'B', 'N', 'R', 'K', 'Q'))
-	, [FigureUTF8]				BIGINT		NOT NULL						-- UTF8 value of the figure graphic
+	, [FigureLetter]			CHAR(1)		NULL							-- 'P', 'B', 'N', 'R', 'K', 'Q', NULL
+		CHECK ([FigureLetter] IN (CHAR(160), NULL, 'P', 'B', 'N', 'R', 'K', 'Q'))
+	, [FigureUTF8]				BIGINT		NULL						-- UTF8 value of the figure graphic
 	, CONSTRAINT [PK_GameBoard] PRIMARY KEY CLUSTERED
 		(
 			  [Field]			ASC
@@ -502,12 +516,6 @@ CREATE TABLE [CurrentGame].[Configuration]
 	, [NameOfPlayer]					NVARCHAR(30)	NOT NULL
 	, [IsPlayerHuman]					BIT				NOT NULL
     , [LevelID]							INTEGER			NOT NULL     
-	, [RemainingTimeInSeconds]			INTEGER			NOT NULL
-	, [TimestampLastMove]				DATETIME2		NULL
-	, [IsShortCastlingStillAllowed]		BIT				NOT NULL
-	, [IsLongCastlingStillAllowed]		BIT				NOT NULL
-	, [Number50ActionsRule]				TINYINT			NOT NULL
-	, [IsEnPassantPossible]				CHAR(2)			NULL			-- Coordinate of pawn,who may be captured using "en passant" rule 
 	, CONSTRAINT PK_Configuration_IsPlayerWhite PRIMARY KEY CLUSTERED ([IsPlayerWhite])
 )
 
