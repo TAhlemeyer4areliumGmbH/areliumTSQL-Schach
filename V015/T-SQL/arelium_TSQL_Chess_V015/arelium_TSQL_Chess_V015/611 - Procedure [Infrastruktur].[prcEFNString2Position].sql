@@ -2,14 +2,14 @@
 -- ### arelium_TSQL_Chess_V015 ###############################################################
 -- ### the royal SQL game - project version ##################################################
 -- ###########################################################################################
--- ### FUNCTION [Infrastructure].[fncEFN2Position]                                         ###
+-- ### Transforming an EFN-string into a postion                                           ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### An EFN string is read in and the information contained there is transferred into a  ###
--- ### concrete position. In this function, only a part of the EFN string is relevant -    ###
--- ### the notation also contains further meta information. In this way, the EFN notation  ###
--- ### can also be used to judge whether an "en passant" move is allowed as the next       ###
--- ### action, whether one still has the right to a long/short castling move or whether it ###
--- ### is his move.       Details: https://www.embarc.de/fen-forsyth-edwards-notation/     ###
+-- ### concrete position. The EFN notation contains not only the positions of the          ###
+-- ### individual figures but also further meta information. Thus, the EFN notation can    ###
+-- ### also be used to judge whether an "en passant" move is allowed as the next action,   ###
+-- ### whether one still has the right to a long/short castling move, or whether it is his ###
+-- ### move. Details:  https://www.embarc.de/fen-forsyth-edwards-notation/                 ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Security note:                                                                      ###
 -- ###    This collection of commands is used to create, alter oder drop objects or insert ###
@@ -91,70 +91,55 @@ GO
 -- commands do not have an IF-EXISTS syntax, this is the first place to clean up the list. Existing 
 -- objects are deleted by DROP, so that they can be re-created later in an orderly fashion.
 
+
 --------------------------------------------------------------------------------------------------
 -- Construction work -----------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
-
-CREATE OR ALTER FUNCTION [Infrastructure].[fncEFN2Position]
-	(
-		  @EFN					AS VARCHAR(255)
-	)
-RETURNS @EFN2Position TABLE
-	(
-	  [Column]					CHAR(1)		NOT NULL						-- A-H
-	, [Row]						TINYINT		NOT NULL						-- 1-8
-	, [Field]					TINYINT		NOT NULL						-- A1 = 1, A2 = 2, ..., B1 = 9, ..., H8 = 64
-	, [EFNPositionNr]			TINYINT		NOT NULL						-- A1 = 1, B1 = 2, ..., A2 = 9, ..., H8 = 64
-	, [IsPlayerWhite]			BIT			NULL							-- 1 = TRUE
-	, [FigureLetter]			CHAR(1)		NULL						
-		CHECK ([FigureLetter] IN (NULL, 'B', 'N', 'R', 'K', 'Q', 'P'))
-	, [FigureUTF8]				BIGINT		NULL		
-	)
-
+CREATE OR ALTER PROCEDURE [Infrastructure].[prcEFNString2Position]
+	  @EFN								AS VARCHAR(255)
+AS
 BEGIN
-	--DECLARE @PositionString		AS VARCHAR(64)
-	--DECLARE @Row				AS TINYINT
-	--DECLARE @Column				AS TINYINT
-	--DECLARE @StringPart			AS VARCHAR(8)
-	--DECLARE @ID					AS TINYINT
-	DECLARE @Letter				AS CHAR(1)
+	SET NOCOUNT ON;
+
+	DECLARE @PositionString			AS VARCHAR(71)
+	DECLARE @MetaString				AS VARCHAR(40)
+	DECLARE @Row					AS TINYINT
+	DECLARE @Column					AS TINYINT
+	DECLARE @Field					AS TINYINT
+	DECLARE @EFNPositionNr			AS TINYINT
+	DECLARE @StringPart				AS VARCHAR(8)
+	DECLARE @Castling				AS VARCHAR(8)
+	DECLARE @EnPassantField			AS TINYINT
+	DECLARE @FiftyMovesRule			AS TINYINT
+	DECLARE @ActionCounter			AS INTEGER
+	DECLARE @NextPlayer				AS CHAR(1)
 
 	-- --------------------------------------------------------------
-	-- Step 1: resolve several empty fields in succession
+	-- Step 1: Converting the numbers back into several empty fields
 	-- --------------------------------------------------------------
 
-	-- The board data is extracted from the EFN string.
-	SET @EFN				= LEFT(@EFN, CHARINDEX(' ', @EFN, 1) - 1)
-	SET @EFN				= TRIM(@EFN)
-	SET @EFN				= REPLACE(@EFN, '/', '')
-	SET @EFN				= REPLACE(@EFN, '1', '?')
-	SET @EFN				= REPLACE(@EFN, '2', '??')
-	SET @EFN				= REPLACE(@EFN, '3', '???')
-	SET @EFN				= REPLACE(@EFN, '4', '????')
-	SET @EFN				= REPLACE(@EFN, '5', '?????')
-	SET @EFN				= REPLACE(@EFN, '6', '??????')
-	SET @EFN				= REPLACE(@EFN, '7', '???????')
-	SET @EFN				= REPLACE(@EFN, '8', '????????')
+	SET @PositionString		= LEFT(@EFN, CHARINDEX(' ', @EFN))
+	SET @MetaString			= RIGHT(@EFN, LEN(@EFN) - LEN(@PositionString) - 1)
+
+	SET @PositionString = REPLACE(@PositionString, '8', REPLICATE('$', 8))
+	SET @PositionString = REPLACE(@PositionString, '7', REPLICATE('$', 7))
+	SET @PositionString = REPLACE(@PositionString, '6', REPLICATE('$', 6))
+	SET @PositionString = REPLACE(@PositionString, '5', REPLICATE('$', 5))
+	SET @PositionString = REPLACE(@PositionString, '4', REPLICATE('$', 4))
+	SET @PositionString = REPLACE(@PositionString, '3', REPLICATE('$', 3))
+	SET @PositionString = REPLACE(@PositionString, '2', REPLICATE('$', 2))
+	SET @PositionString = REPLACE(@PositionString, '1', REPLICATE('$', 1))
+	SET @PositionString = REPLACE(@PositionString, '/', '')
 
 	-- --------------------------------------------------------------
-	-- Step 2: Evaluate the position information of the figures
+	-- Step 2: Update position
 	-- --------------------------------------------------------------
-	INSERT INTO @EFN2Position
-		( [Column]
-		, [Row]
-		, [Field]
-		, [EFNPositionNr]
-		, [IsPlayerWhite]
-		, [FigureLetter]
-		, [FigureUTF8])
-	SELECT 
-		  [Column]													AS [Column]
-		, [Row]														AS [Row]
-		, [Field]													AS [Field]
-		, [EFNPositionNr]											AS [EFNPositionNr]
-		, CASE SUBSTRING(@EFN, [EFNPositionNr], 1)
-			WHEN '?' COLLATE Latin1_General_CS_AI THEN NULL
+
+	UPDATE [Infrastructure].[GameBoard]
+	SET 
+		[IsPlayerWhite]	= CASE SUBSTRING(@PositionString, [EFNPositionNr], 1)
+			WHEN '$' COLLATE Latin1_General_CS_AI THEN NULL
 			WHEN 'r' COLLATE Latin1_General_CS_AI THEN 'FALSE'
 			WHEN 'R' COLLATE Latin1_General_CS_AI THEN 'TRUE'
 			WHEN 'n' COLLATE Latin1_General_CS_AI THEN 'FALSE'
@@ -167,9 +152,9 @@ BEGIN
 			WHEN 'K' COLLATE Latin1_General_CS_AI THEN 'TRUE'
 			WHEN 'p' COLLATE Latin1_General_CS_AI THEN 'FALSE'
 			WHEN 'P' COLLATE Latin1_General_CS_AI THEN 'TRUE'
-			END														AS [IsPlayerWhite]
-		, CASE SUBSTRING(@EFN, [EFNPositionNr], 1)
-			WHEN '?' COLLATE Latin1_General_CS_AI THEN NULL
+			END
+		, [FigureLetter] = CASE SUBSTRING(@PositionString, [EFNPositionNr], 1)
+			WHEN '$' COLLATE Latin1_General_CS_AI THEN NULL
 			WHEN 'r' COLLATE Latin1_General_CS_AI THEN 'R'
 			WHEN 'R' COLLATE Latin1_General_CS_AI THEN 'R'
 			WHEN 'n' COLLATE Latin1_General_CS_AI THEN 'N'
@@ -182,9 +167,9 @@ BEGIN
 			WHEN 'K' COLLATE Latin1_General_CS_AI THEN 'K'
 			WHEN 'p' COLLATE Latin1_General_CS_AI THEN 'P'
 			WHEN 'P' COLLATE Latin1_General_CS_AI THEN 'P'
-			END														AS [FigureLetter]
-		, CASE SUBSTRING(@EFN, [EFNPositionNr], 1)
-			WHEN '?' COLLATE Latin1_General_CS_AI THEN 160
+			END
+		, [FigureUTF8] = CASE SUBSTRING(@PositionString, [EFNPositionNr], 1)
+			WHEN '$' COLLATE Latin1_General_CS_AI THEN 160
 			WHEN 'r' COLLATE Latin1_General_CS_AI THEN 9820
 			WHEN 'R' COLLATE Latin1_General_CS_AI THEN 9814
 			WHEN 'n' COLLATE Latin1_General_CS_AI THEN 9822
@@ -197,12 +182,133 @@ BEGIN
 			WHEN 'K' COLLATE Latin1_General_CS_AI THEN 9812
 			WHEN 'p' COLLATE Latin1_General_CS_AI THEN 9823
 			WHEN 'P' COLLATE Latin1_General_CS_AI THEN 9817
-			END														AS [FigureUTF8]
-	FROM [Infrastructure].[GameBoard]
+			END
+	
 
-	RETURN
+	-- --------------------------------------------------------------
+	-- Step 3: next player
+	-- --------------------------------------------------------------
+
+	SET @NextPlayer = LEFT(@MetaString, 1)
+
+
+	-- --------------------------------------------------------------
+	-- Step 4: Observe castling rights
+	-- --------------------------------------------------------------
+
+	SET @MetaString		= RIGHT(@MetaString, LEN(@MetaString) - 2)
+	SET @Castling		= TRIM(LEFT(@MetaString, CHARINDEX(' ', @MetaString, 1)))
+	SET @MetaString		= RIGHT(@MetaString, LEN(@MetaString) - CHARINDEX(' ', @MetaString, 1))
+
+	UPDATE [CurrentGame].[GameStatus]
+	SET   [IsShortCastlingStillAllowed]			= 'FALSE'
+		, [IsLongCastlingStillAllowed]			= 'FALSE'
+
+
+	IF CHARINDEX('k' COLLATE Latin1_General_CS_AI, @Castling, 1) <> 0
+	BEGIN
+		UPDATE [CurrentGame].[GameStatus]
+		SET   [IsShortCastlingStillAllowed]		= 'TRUE'
+		WHERE [IsPlayerWhite]					= 'FALSE'
+	END
+
+	IF CHARINDEX('K' COLLATE Latin1_General_CS_AI, @Castling, 1) <> 0
+	BEGIN
+		UPDATE [CurrentGame].[GameStatus]
+		SET   [IsShortCastlingStillAllowed]		= 'TRUE'
+		WHERE [IsPlayerWhite]					= 'TRUE'
+	END
+
+	IF CHARINDEX('q' COLLATE Latin1_General_CS_AI, @Castling, 1) <> 0
+	BEGIN
+		UPDATE [CurrentGame].[GameStatus]
+		SET   [IsLongCastlingStillAllowed]		= 'TRUE'
+		WHERE [IsPlayerWhite]					= 'FALSE'
+	END
+
+	IF CHARINDEX('Q' COLLATE Latin1_General_CS_AI, @Castling, 1) <> 0
+	BEGIN
+		UPDATE [CurrentGame].[GameStatus]
+		SET   [IsLongCastlingStillAllowed]		= 'TRUE'
+		WHERE [IsPlayerWhite]					= 'TRUE'
+	END
+
+	
+	-- --------------------------------------------------------------
+	-- Step 5: note en-passant
+	---- --------------------------------------------------------------
+
+	SET @MetaString		= TRIM(LEFT(@MetaString, CHARINDEX(' ', @MetaString, 1)))
+	SET @MetaString		= RIGHT(@MetaString, LEN(@MetaString) - CHARINDEX(' ', @MetaString, 1))
+
+	IF @MetaString = '-'
+	BEGIN
+		SET @EnPassantField = NULL
+	END
+	ELSE
+	BEGIN
+		SET @EnPassantField = (	SELECT [Field]
+								FROM [Infrastructure].[GameBoard]
+								WHERE 1 = 1
+									AND [Column]	= LEFT(@MetaString, 1)
+									AND [Row]		= RIGHT(@MetaString, 1)
+							)
+	END
+
+	-- --------------------------------------------------------------
+	-- Step 6: 50-count rule
+	---- --------------------------------------------------------------
+
+	SET @MetaString		= TRIM(LEFT(@MetaString, CHARINDEX(' ', @MetaString, 1)))
+	SET @MetaString		= RIGHT(@MetaString, LEN(@MetaString) - CHARINDEX(' ', @MetaString, 1))
+
+	SET @FiftyMovesRule = CONVERT(TINYINT, @MetaString)
+
+	UPDATE [CurrentGame].[GameStatus]
+	SET [Number50ActionsRule] = @FiftyMovesRule
+	
+	-- --------------------------------------------------------------
+	-- Step 7: action number
+	---- --------------------------------------------------------------
+
+	SET @MetaString		= TRIM(LEFT(@MetaString, CHARINDEX(' ', @MetaString, 1)))
+	SET @ActionCounter	= CONVERT(INTEGER, @MetaString)
+
+	DELETE FROM [CurrentGame].[Notation]
+
+	INSERT INTO [CurrentGame].[Notation]
+        ( [MoveID]
+        , [IsPlayerWhite]
+        , [TheoreticalActionID]
+        , [LongNotation]
+        , [ShortNotationSimple]
+        , [ShortNotationComplex]
+        , [IsMoveChessBid]
+		, [EFN])
+	VALUES
+        (0, 1, NULL, 'EFN', 'EFN', 'EFN', 'FALSE', @EFN)
+
+	IF @NextPlayer = 'w'
+	BEGIN
+		INSERT INTO [CurrentGame].[Notation]
+           (  [MoveID]
+			, [IsPlayerWhite]
+			, [TheoreticalActionID]
+			, [LongNotation]
+			, [ShortNotationSimple]
+			, [ShortNotationComplex]
+			, [IsMoveChessBid]
+			, [EFN])
+		VALUES
+           (0, 0, NULL, 'EFN', 'EFN', 'EFN', 'FALSE', @EFN)
+	END
+
+	SELECT * FROM [Infrastructure].[vDashboard]
+
+
 END
 GO
+
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -211,14 +317,13 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @End		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Time		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Script		VARCHAR(100)	= '614 - Function [Infrastructure].[fncEFN2Position].sql'
+DECLARE @Script		VARCHAR(100)	= '611 - Procedure [Infrastruktur].[prcEFNString2Position].sql'
 PRINT ' '
 PRINT 'Script     :   ' + @Script
 PRINT 'End        :   ' + @End
 PRINT 'Time       :   ' + @Time
 SELECT @Script AS Skript, @End AS Ende, @Time AS Zeit
 GO
-
 
 /*
 
@@ -228,18 +333,11 @@ GO
 DECLARE @EFN varchar(255)
 
 SET @EFN = 'rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR w KkQq a3 3 1'
+--'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 --SET @EFN = '6r1/6pp/7r/1B5K/1P3k2/N7/3R4/8 w - - 30 79'
 
-TRUNCATE TABLE [Infrastructure].[GameBoard]
-
-INSERT INTO [Infrastructure].[GameBoard]
-	([Column], [Row], [Field], [EFNPositionNr], [IsPlayerWhite], [FigureLetter] ,[FigureUTF8])
-	SELECT  [Column], [Row], [Field], [EFNPositionNr], [IsPlayerWhite], [FigureLetter], [FigureUTF8]
-	FROM [Infrastructure].[fncEFN2Position](@EFN)
-	ORDER BY Field
+EXECUTE [Infrastructure].[prcEFNString2Position] @EFN
 GO
 
-SELECT * FROM [Infrastructure].[vDashboard]
-GO
 */
  

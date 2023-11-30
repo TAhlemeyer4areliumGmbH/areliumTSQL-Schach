@@ -2,9 +2,11 @@
 -- ### arelium_TSQL_Chess_V015 ###############################################################
 -- ### the royal SQL game - project version ##################################################
 -- ###########################################################################################
--- ### FUNCTION [CurrentGame].[fncIsNextMoveWhite]                                         ###
+-- ### Measures for runtime optimisation                                                   ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### Who will be next? Is it the turn of white or black?                                 ###
+-- ### The chess computer must constantly evaluate, look up and aggregate data. This       ###
+-- ### requires a lot of system resources and takes an uncomfortably long time. To shorten ###
+-- ### runtimes, there are countermeasures such as indexing.                               ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Security note:                                                                      ###
 -- ###    This collection of commands is used to create, alter oder drop objects or insert ###
@@ -18,6 +20,15 @@
 -- ### A big thank you goes to (MVP) Uwe Ricken, who helped the project with motivation,   ###
 -- ### advice and especially (but not only) in the area of runtime optimisation and        ###
 -- ### continues to do so (https://www.db-berater.de/).                                    ###
+-- ###                                                                                     ###
+-- ### Another thank you goes to Ralph Kemperdick, who supports the project in an advisory ###
+-- ### capacity. With his large network, especially in the Microsoft world, he makes many  ###
+-- ### problem-solving approaches possible in the first place.                             ###
+-- ###                                                                                     ###
+-- ### Also extremely helpful is Buck Woody. The long-time Microsoft employee was          ###
+-- ### persuaded by this project at a conference and has since supported it with his       ###
+-- ### enormous reach and experience in adult education. Buck knows the perfect contacts   ###
+-- ### to make the chess programme known worldwide.                                        ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Changelog:                                                                          ###
 -- ###     15.00.0   2023-07-07 Torsten Ahlemeyer                                          ###
@@ -33,7 +44,6 @@
 -- ### own projects on this code. Appropriate copyright and rights information must be     ###
 -- ### provided, a link to the licence must be included and changes must be indicated.     ###
 -- ###########################################################################################
-
 
 --------------------------------------------------------------------------------------------------
 -- Runtime statistics for this script ------------------------------------------------------------
@@ -68,58 +78,35 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-
 --------------------------------------------------------------------------------------------------
 -- Clean-up --------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
--- All objects that are created or changed by this script are listed here. Since some DDL
--- commands do not have an IF-EXISTS syntax, this is the first place to clean up the list. Existing 
--- objects are deleted by DROP, so that they can be re-created later in an orderly fashion.
+DROP INDEX IF EXISTS [Infrastructure].[TheoreticalAction].[id_nc_Infrastructure_TheoreticalAction__FigureLetter]
+GO
 
+DROP INDEX IF EXISTS [Infrastructure].[TheoreticalAction].[id_nc_Infrastructure_TheoreticalAction__FigureLetter_plus]
+GO
 
-
+DROP INDEX IF EXISTS [Infrastructure].[TheoreticalAction].[id_nc_Infrastructure_TheoreticalAktion_FigureLetterIsPlayerWhiteStartFieldTargetFieldDirection_plus]
+GO
 
 --------------------------------------------------------------------------------------------------
 -- Construction work -----------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
-CREATE OR ALTER FUNCTION [CurrentGame].[fncIsNextMoveWhite]
-()
-RETURNS BIT
-AS
-BEGIN
-	DECLARE @ReturnValue AS BIT
 
-	IF EXISTS (SELECT COUNT(*) FROM [CurrentGame].[Notation] GROUP BY [MoveID] HAVING COUNT(*) = 1)
-	BEGIN
-		SET @ReturnValue =  'FALSE'
-	END
-	ELSE
-	BEGIN
-		SET @ReturnValue =  'TRUE'
-	END
 
-	RETURN @ReturnValue 
-END
+CREATE NONCLUSTERED INDEX [id_nc_Infrastructure_TheoreticalAction__FigureLetter]
+ON [Infrastructure].[TheoreticalAction] ([FigureLetter])
 GO
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
--- Statistics ---------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------------------------------------
-DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
-DECLARE @End		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
-DECLARE @Time		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Script		VARCHAR(100)	= '083 - Function [CurrentGame].[fncIsNextMoveWhite].sql'
-PRINT ' '
-PRINT 'Script     :   ' + @Script
-PRINT 'End        :   ' + @End
-PRINT 'Time       :   ' + @Time
-SELECT @Script AS Skript, @End AS Ende, @Time AS Zeit
+
+CREATE NONCLUSTERED INDEX [id_nc_Infrastructure_TheoreticalAction__FigureLetter_plus]
+ON [Infrastructure].[TheoreticalAction] ([FigureLetter])
+INCLUDE ([IsPlayerWhite],[StartColumn],[StartRow],[StartField],[TargetColumn],[TargetRow],[TargetField],[Direction],[IsActionCapture],[LongNotation],[ShortNotationSimple],[ShortNotationComplex])
 GO
 
-/*
--- Test of Function [CurrentGame].[fncIsNextMoveWhite]
 
-SELECT [CurrentGame].[fncIsNextMoveWhite]()
-GO
-*/
+CREATE NONCLUSTERED INDEX [id_nc_Infrastructure_TheoreticalAktion_FigureLetterIsPlayerWhiteStartFieldTargetFieldDirection_plus]
+ON [Infrastructure].[TheoreticalAction] ([FigureLetter],[IsPlayerWhite],[StartField],[TargetField],[Direction])
+INCLUDE ([TargetColumn])

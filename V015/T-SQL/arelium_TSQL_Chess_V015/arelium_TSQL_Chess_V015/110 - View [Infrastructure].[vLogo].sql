@@ -2,18 +2,11 @@
 -- ### arelium_TSQL_Chess_V015 ###############################################################
 -- ### the royal SQL game - project version ##################################################
 -- ###########################################################################################
--- ### View [CurrentGame].[vCapturedFigures]                                               ###
+-- ### View [Infrastructure].[vLogo]                                                       ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### This view determines the already captured pieces of both players. For this purpose, ###
--- ### the pieces of the current position are compared with those of the starting          ###
--- ### position. Deviations are displayed graphically, whereby a distinction is made       ###
--- ### between pawns and other pieces.                                                     ###
--- ###                                                                                     ###
--- ### The result contains an "ID" column. It is used for the JOIN possibility to display  ###
--- ### the individual blocks of the dashboard (the overall view from the board, move       ###
--- ### preview, captured pieces, statistics for the position evaluation, ...). The         ###
--- ### graphical representation of the pieces uses the REPLICATE statement to put the      ###
--- ### correct number of elements one after the other.                                     ###                   
+-- ### this view draws an application logo in the form of a rook and a "T-SQL Chess"       ###
+-- ### lettering via the "geography" method with which the table [Infrastructure].[Logo]   ###
+-- ### was filled.                                                                         ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Security note:                                                                      ###
 -- ###    This collection of commands is used to create, alter oder drop objects or insert ###
@@ -99,33 +92,10 @@ GO
 -- Construction work -----------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
-CREATE OR ALTER VIEW [CurrentGame].[vCapturedFigures]
+CREATE OR ALTER VIEW [Infrastructure].[vLogo]
 AS
 
-	SELECT
-		  1				AS [ID]
-		, REPLICATE(NCHAR(9817), (SELECT 8 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'P'))
-						AS [captured piece(s)]
-	UNION ALL
-	SELECT
-		  2
-		, REPLICATE(NCHAR(9815), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'B'))
-		+ REPLICATE(NCHAR(9816), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'N'))
-		+ REPLICATE(NCHAR(9814), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'R'))
-		+ REPLICATE(NCHAR(9813), (SELECT 1 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'Q'))
-	UNION ALL
-	SELECT 3,''
-	UNION ALL
-	SELECT
-		  4	
-		, REPLICATE(NCHAR(9823), (SELECT 8 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'P'))
-	UNION ALL
-	SELECT
-		  5
-		, REPLICATE(NCHAR(9821), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'B'))
-		+ REPLICATE(NCHAR(9822), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'N'))
-		+ REPLICATE(NCHAR(9820), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'R'))
-		+ REPLICATE(NCHAR(9819), (SELECT 1 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'Q'))
+	SELECT * FROM [Infrastructure].[Logo]
 GO
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -134,7 +104,7 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @End		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Time		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Script		VARCHAR(100)	= '111 - View [CurrentGame].[vCapturedFigures].sql'
+DECLARE @Script		VARCHAR(100)	= '110 - View [Infrastructure].[vLogo].sql'
 PRINT ' '
 PRINT 'Script     :   ' + @Script
 PRINT 'End        :   ' + @End
@@ -147,7 +117,7 @@ GO
 USE [arelium_TSQL_Chess_V015]
 GO
 
-SELECT * FROM [CurrentGame].[vCapturedFigures]
+SELECT * FROM [Infrastrukture].[vLogo]
 GO
 
 */

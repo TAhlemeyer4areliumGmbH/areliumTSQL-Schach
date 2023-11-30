@@ -2,18 +2,11 @@
 -- ### arelium_TSQL_Chess_V015 ###############################################################
 -- ### the royal SQL game - project version ##################################################
 -- ###########################################################################################
--- ### View [CurrentGame].[vCapturedFigures]                                               ###
+-- ### Function [CurrentGame].[fncIsFieldThreatened]                                       ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### This view determines the already captured pieces of both players. For this purpose, ###
--- ### the pieces of the current position are compared with those of the starting          ###
--- ### position. Deviations are displayed graphically, whereby a distinction is made       ###
--- ### between pawns and other pieces.                                                     ###
--- ###                                                                                     ###
--- ### The result contains an "ID" column. It is used for the JOIN possibility to display  ###
--- ### the individual blocks of the dashboard (the overall view from the board, move       ###
--- ### preview, captured pieces, statistics for the position evaluation, ...). The         ###
--- ### graphical representation of the pieces uses the REPLICATE statement to put the      ###
--- ### correct number of elements one after the other.                                     ###                   
+-- ### If there is not only theoretically but also actually a move allowed in this         ###
+-- ### position or a stroke that has the requested square as a target square, this         ###
+-- ### function returns a 'TRUE' - otherwise a 'FALSE'.                                    ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Security note:                                                                      ###
 -- ###    This collection of commands is used to create, alter oder drop objects or insert ###
@@ -38,7 +31,7 @@
 -- ### to make the chess programme known worldwide.                                        ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Changelog:                                                                          ###
--- ###     15.00.0   2023-07-07 Torsten Ahlemeyer                                          ###
+-- ###     15.00.0   2023-09-21 Torsten Ahlemeyer                                          ###
 -- ###               Initial creation with default values                                  ###
 -- ###########################################################################################
 -- ### COPYRIGHT notice  (see https://creativecommons.org/licenses/by-nc-sa/3.0/de/)       ###
@@ -87,46 +80,39 @@ GO
 
 
 
---------------------------------------------------------------------------------------------------
--- Clean-up --------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------------
 
--- All objects that are created or changed by this script are listed here. Since some DDL
--- commands do not have an IF-EXISTS syntax, this is the first place to clean up the list. Existing 
--- objects are deleted by DROP, so that they can be re-created later in an orderly fashion.
+
 
 --------------------------------------------------------------------------------------------------
 -- Construction work -----------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
-
-CREATE OR ALTER VIEW [CurrentGame].[vCapturedFigures]
+CREATE OR ALTER FUNCTION [CurrentGame].[fncIsFieldThreatened] 
+(
+	  @IsPlayerWhite			AS BIT
+	, @Gameboard				AS [dbo].[typePosition]		READONLY
+	, @Field					AS TINYINT
+)
+RETURNS BIT
 AS
+BEGIN
+	DECLARE @ReturnValue		AS BIT
+	SET @ReturnValue			= 0
 
-	SELECT
-		  1				AS [ID]
-		, REPLICATE(NCHAR(9817), (SELECT 8 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'P'))
-						AS [captured piece(s)]
-	UNION ALL
-	SELECT
-		  2
-		, REPLICATE(NCHAR(9815), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'B'))
-		+ REPLICATE(NCHAR(9816), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'N'))
-		+ REPLICATE(NCHAR(9814), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'R'))
-		+ REPLICATE(NCHAR(9813), (SELECT 1 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'Q'))
-	UNION ALL
-	SELECT 3,''
-	UNION ALL
-	SELECT
-		  4	
-		, REPLICATE(NCHAR(9823), (SELECT 8 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'P'))
-	UNION ALL
-	SELECT
-		  5
-		, REPLICATE(NCHAR(9821), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'B'))
-		+ REPLICATE(NCHAR(9822), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'N'))
-		+ REPLICATE(NCHAR(9820), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'R'))
-		+ REPLICATE(NCHAR(9819), (SELECT 1 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'Q'))
+	IF EXISTS (	SELECT 
+				* 
+				FROM [CurrentGame].[fncPossibleActionsAllPieces] (@IsPlayerWhite, [Infrastructure].[fncPosition2EFN](@IsPlayerWhite, 'kKqQ', '', 3, 1, @Gameboard))
+				WHERE 1 = 1
+					AND [TargetField] = @Field
+				)
+	BEGIN
+		SET @ReturnValue = 1
+	END
+
+	RETURN @ReturnValue
+END
 GO
+
+
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Statistics ---------------------------------------------------------------------------------------------------------------------------------------
@@ -134,7 +120,7 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @End		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Time		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Script		VARCHAR(100)	= '111 - View [CurrentGame].[vCapturedFigures].sql'
+DECLARE @Script		VARCHAR(100)	= '085 - Function [CurrentGame].[fncIsFieldThreatened].sql'
 PRINT ' '
 PRINT 'Script     :   ' + @Script
 PRINT 'End        :   ' + @End
@@ -144,10 +130,34 @@ GO
 
 
 /*
-USE [arelium_TSQL_Chess_V015]
-GO
+-- Test der Funktion [CurrentGame].[fncIsFieldThreatened]
+	DECLARE @GameboardB				AS [dbo].[typePosition]
 
-SELECT * FROM [CurrentGame].[vCapturedFigures]
-GO
+	INSERT INTO @GameboardB
+	([Column], [Row], [Field], [IsPlayerWhite], [EFNPositionNr], [FigureLetter], [FigureUTF8])
+	SELECT 
+			[GB].[Column]					AS [Column]
+		, [GB].[Row]					AS [Row]
+		, [GB].[Field]					AS [Field]
+		, [GB].[IsPlayerWhite]			AS [IsPlayerWhite]
+		, [GB].[EFNPositionNr]			AS [EFNPositionNr]
+		, [GB].[FigureLetter]			AS [FigureLetter]
+		, [GB].[FigureUTF8]				AS [FigureUTF8]
+	FROM [Infrastructure].[GameBoard]	AS [GB]
 
+SELECT [CurrentGame].[fncIsFieldThreatened](
+	0
+	, @GameboardB
+	, 33
+)
+
+	SELECT 
+	* 
+	FROM [CurrentGame].[fncPossibleActionsAllPieces] (0, 'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR b KkQq a3 3 1')
+	WHERE 1 = 1
+		AND [TargetField] = 33
+
+		SELECt * FROM @GameboardB
+SELECT [Infrastructure].[fncPosition2EFN](0, 'kKqQ', '', 3, 1, @GameboardB)
+GO
 */

@@ -23,6 +23,15 @@
 -- ### A big thank you goes to (MVP) Uwe Ricken, who helped the project with motivation,   ###
 -- ### advice and especially (but not only) in the area of runtime optimisation and        ###
 -- ### continues to do so (https://www.db-berater.de/).                                    ###
+-- ###                                                                                     ###
+-- ### Another thank you goes to Ralph Kemperdick, who supports the project in an advisory ###
+-- ### capacity. With his large network, especially in the Microsoft world, he makes many  ###
+-- ### problem-solving approaches possible in the first place.                             ###
+-- ###                                                                                     ###
+-- ### Also extremely helpful is Buck Woody. The long-time Microsoft employee was          ###
+-- ### persuaded by this project at a conference and has since supported it with his       ###
+-- ### enormous reach and experience in adult education. Buck knows the perfect contacts   ###
+-- ### to make the chess programme known worldwide.                                        ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Proof of amendment:                                                                 ###
 -- ###     15.00.0   2023-07-07 Torsten Ahlemeyer                                          ###
@@ -98,9 +107,9 @@ END
 CREATE DATABASE [arelium_TSQL_Chess_V015]
  CONTAINMENT = NONE
  ON  PRIMARY 
-( NAME = N'arelium_TSQL_Chess_V015',		FILENAME = N'C:\TAH_Bewegtdaten\Datenbanken\Projekte\arelium_TSQL_Chess_V015\arelium_TSQL_Chess_V015.mdf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+( NAME = N'arelium_TSQL_Chess_V015',		FILENAME = N'D:\Beruf\arelium\Datenbanken\arelium_TSQL_Chess_V015.mdf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
  LOG ON 
-( NAME = N'arelium_TSQL_Chess_V015_log',	FILENAME = N'C:\TAH_Bewegtdaten\Datenbanken\Projekte\arelium_TSQL_Chess_V015\arelium_TSQL_Chess_V015_log.ldf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+( NAME = N'arelium_TSQL_Chess_V015_log',	FILENAME = N'D:\Beruf\arelium\Datenbanken\arelium_TSQL_Chess_V015_log.ldf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
 GO
 ALTER DATABASE [arelium_TSQL_Chess_V015] SET COMPATIBILITY_LEVEL = 150
 GO

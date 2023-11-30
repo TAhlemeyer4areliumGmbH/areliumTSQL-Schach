@@ -2,18 +2,12 @@
 -- ### arelium_TSQL_Chess_V015 ###############################################################
 -- ### the royal SQL game - project version ##################################################
 -- ###########################################################################################
--- ### View [CurrentGame].[vCapturedFigures]                                               ###
+-- ### The foolish matt                                                                    ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### This view determines the already captured pieces of both players. For this purpose, ###
--- ### the pieces of the current position are compared with those of the starting          ###
--- ### position. Deviations are displayed graphically, whereby a distinction is made       ###
--- ### between pawns and other pieces.                                                     ###
--- ###                                                                                     ###
--- ### The result contains an "ID" column. It is used for the JOIN possibility to display  ###
--- ### the individual blocks of the dashboard (the overall view from the board, move       ###
--- ### preview, captured pieces, statistics for the position evaluation, ...). The         ###
--- ### graphical representation of the pieces uses the REPLICATE statement to put the      ###
--- ### correct number of elements one after the other.                                     ###                   
+-- ### This example game shows the shortest possible game of chess. Here Black mates his   ###
+-- ### opponent, who, however, has to help a lot. The move sequence is suitable for        ###
+-- ### testing the moves, checking the calculation of the possible moves and testing the   ###
+-- ### algorithm for chess and mate recognition.                                           ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Security note:                                                                      ###
 -- ###    This collection of commands is used to create, alter oder drop objects or insert ###
@@ -51,7 +45,6 @@
 -- ### own projects on this code. Appropriate copyright and rights information must be     ###
 -- ### provided, a link to the licence must be included and changes must be indicated.     ###
 -- ###########################################################################################
-
 
 --------------------------------------------------------------------------------------------------
 -- Runtime statistics for this script ------------------------------------------------------------
@@ -95,59 +88,94 @@ GO
 -- commands do not have an IF-EXISTS syntax, this is the first place to clean up the list. Existing 
 -- objects are deleted by DROP, so that they can be re-created later in an orderly fashion.
 
+
+
 --------------------------------------------------------------------------------------------------
 -- Construction work -----------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
-CREATE OR ALTER VIEW [CurrentGame].[vCapturedFigures]
-AS
 
-	SELECT
-		  1				AS [ID]
-		, REPLICATE(NCHAR(9817), (SELECT 8 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'P'))
-						AS [captured piece(s)]
-	UNION ALL
-	SELECT
-		  2
-		, REPLICATE(NCHAR(9815), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'B'))
-		+ REPLICATE(NCHAR(9816), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'N'))
-		+ REPLICATE(NCHAR(9814), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'R'))
-		+ REPLICATE(NCHAR(9813), (SELECT 1 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'Q'))
-	UNION ALL
-	SELECT 3,''
-	UNION ALL
-	SELECT
-		  4	
-		, REPLICATE(NCHAR(9823), (SELECT 8 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'P'))
-	UNION ALL
-	SELECT
-		  5
-		, REPLICATE(NCHAR(9821), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'B'))
-		+ REPLICATE(NCHAR(9822), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'N'))
-		+ REPLICATE(NCHAR(9820), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'R'))
-		+ REPLICATE(NCHAR(9819), (SELECT 1 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'Q'))
+
+TRUNCATE TABLE [CurrentGame].[Configuration]
 GO
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
--- Statistics ---------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------------------------------------
-DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
-DECLARE @End		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
-DECLARE @Time		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Script		VARCHAR(100)	= '111 - View [CurrentGame].[vCapturedFigures].sql'
-PRINT ' '
-PRINT 'Script     :   ' + @Script
-PRINT 'End        :   ' + @End
-PRINT 'Time       :   ' + @Time
-SELECT @Script AS Skript, @End AS Ende, @Time AS Zeit
+INSERT INTO [CurrentGame].[Configuration]
+	( [IsPlayerWhite]
+	, [NameOfPlayer]
+	, [IsPlayerHuman]
+	, [LevelID]
+	, [ShowOptions]
+	)
+VALUES
+	  ('TRUE'	, 'Torsten',	'TRUE'	,255,	'TRUE')
+	, ('FALSE'	, 'Julia',		'TRUE'	,255,	'TRUE')
 GO
 
 
-/*
-USE [arelium_TSQL_Chess_V015]
+
+
+TRUNCATE TABLE [CurrentGame].[PossibleAction]
 GO
 
-SELECT * FROM [CurrentGame].[vCapturedFigures]
+TRUNCATE TABLE [CurrentGame].[Notation]
 GO
 
-*/
+EXECUTE [Infrastructure].[prcInitialisationOfTheoreticalActions]
+GO
+
+EXEC [Infrastructure].[prcSetUpBasicPosition]
+GO
+
+
+DECLARE @EFN varchar(255)
+SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+
+
+INSERT INTO [CurrentGame].[PossibleAction]
+	( [TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn], [StartRow], [StartField]
+	, [TargetColumn], [TargetRow], [TargetField], [Direction], [TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside]
+	, [IsActionCastlingQueensside], [IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex], [Rating])
+EXEC [CurrentGame].[prcPossibleActionsAllPieces] 
+	   'TRUE'		-- @IsPlayerWhite		AS BIT
+	 , @EFN			--						AS VARCHAR(255)
+GO
+
+
+
+SELECT * FROM [Infrastructure].[vDashboard]
+GO
+
+EXECUTE [CurrentGame].[prcPerformAnAction] 
+   'f2'			-- @StartSquare
+  ,'f3'			-- @TargetSquare
+  , NULL		-- @TransformationFigure
+  , 'FALSE'		-- @IsEnPassant
+  , 'TRUE'		-- @IsPlayerWhite
+GO
+
+
+EXECUTE [CurrentGame].[prcPerformAnAction] 
+   'e7'			-- @StartSquare
+  ,'e5'			-- @TargetSquare
+  , NULL		-- @TransformationFigure
+  , 'FALSE'		-- @IsEnPassant
+  , 'FALSE'		-- @IsPlayerWhite
+GO
+
+
+EXECUTE [CurrentGame].[prcPerformAnAction] 
+   'g2'			-- @StartSquare
+  ,'g4'			-- @TargetSquare
+  , NULL		-- @TransformationFigure
+  , 'FALSE'		-- @IsEnPassant
+  , 'TRUE'		-- @IsPlayerWhite
+GO
+
+
+EXECUTE [CurrentGame].[prcPerformAnAction] 
+   'd8'			-- @StartSquare
+  ,'h4'			-- @TargetSquare
+  , NULL		-- @TransformationFigure
+  , 'FALSE'		-- @IsEnPassant
+  , 'FALSE'		-- @IsPlayerWhite
+GO

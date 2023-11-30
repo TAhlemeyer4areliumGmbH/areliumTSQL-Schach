@@ -19,6 +19,15 @@
 -- ### A big thank you goes to (MVP) Uwe Ricken, who helped the project with motivation,   ###
 -- ### advice and especially (but not only) in the area of runtime optimisation and        ###
 -- ### continues to do so (https://www.db-berater.de/).                                    ###
+-- ###                                                                                     ###
+-- ### Another thank you goes to Ralph Kemperdick, who supports the project in an advisory ###
+-- ### capacity. With his large network, especially in the Microsoft world, he makes many  ###
+-- ### problem-solving approaches possible in the first place.                             ###
+-- ###                                                                                     ###
+-- ### Also extremely helpful is Buck Woody. The long-time Microsoft employee was          ###
+-- ### persuaded by this project at a conference and has since supported it with his       ###
+-- ### enormous reach and experience in adult education. Buck knows the perfect contacts   ###
+-- ### to make the chess programme known worldwide.                                        ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Changelog:                                                                          ###
 -- ###     15.00.0   2023-07-07 Torsten Ahlemeyer                                          ###
@@ -82,6 +91,8 @@ TRUNCATE TABLE [Infrastructure].[Logo]
 DELETE FROM [Infrastructure].[Figure] 
 DELETE FROM [Infrastructure].[Level]
 DELETE FROM [Statistic].[PositionEvaluation]
+DELETE FROM [Infrastructure].[GameBoard]
+DELETE FROM [Infrastructure].[DiagonalAllocation]
 GO
 
 
@@ -110,16 +121,14 @@ VALUES (N'Rook', geography::STGeomFromText(
 
 			-- visualize "Chess" (Schach), one letter per row
 			 + '
-                    , (      36 6, 46 6, 46 4, 38 4, 38 0, 46 0, 46 -8, 36 -8, 36 -6, 44 -6, 44 -2, 36 -2, 36 6 ) 
                     , (      48 6, 58 6, 58 4, 50 4, 50 -6, 58 -6, 58 -8, 48 -8, 48 6 ) 
                     , (      60 6, 62 6, 62 0, 68 0, 68 6, 70 6, 70 -8, 68 -8, 68 -2, 62 -2, 62 -8, 60 -8, 60 6 ) 
-                    , (      72 -8, 76 6, 78 6, 82 -8, 80 -8, 78 -3, 76 -3, 76 -2, 77.5 -2, 77 -1, 76 -1, 75 -3, 74 -8, 72 -8) 
-                    , (      84 6, 94 6, 94 4, 86 4, 86 -6, 94 -6, 94 -8, 84 -8, 84 6 ) 
-                    , (      96 6, 98 6, 98 0, 104 0, 104 6, 106 6, 106 -8, 104 -8, 104 -2, 98 -2, 98 -8, 96 -8, 96 6 ) 
+                    , (      72 6, 82 6, 82 4, 74 4, 74 0, 82 0, 82 -2, 74 -2,   74 -6, 82 -6, 82 -8, 72 -8, 72 6 ) 
+                    , (      84 6, 94 6, 94 4, 86 4, 86 0, 94 0, 94 -8, 84 -8, 84 -6, 92 -6, 92 -2, 84 -2, 84 6 ) 
+                    , (      96 6,106 6,106 4, 98 4, 98 0,106 0,106 -8, 96 -8, 96 -6,104 -6,104 -2, 96 -2, 96 6 ) 
              )' 
   ,4326) 
   );
-
 
 
 
@@ -139,7 +148,7 @@ INSERT INTO [Infrastructure].[Figure] ([FigureUTF8], [IsPlayerWhite], [FigureNam
 	 ,		(9816, 'TRUE',  'Knight',			'N',		NCHAR(9816),  3)
 	 ,		(9814, 'TRUE',  'Rook',				'R',		NCHAR(9814),  5)
 	 ,		(9817, 'TRUE',  'Pawn',				'P',		NCHAR(9817),  1)
-	 ,		( 160, NULL,	'empty field',		CHAR(160),	NCHAR(160) ,  0)
+	 ,		( 160,   NULL,	'empty field',		' ',		' ',  0)
      ,		(9818, 'FALSE', 'King',				'K',		NCHAR(9818),  0)
 	 ,		(9819, 'FALSE', 'Queen',			'Q',		NCHAR(9819), 10)
 	 ,		(9821, 'FALSE', 'Bishop',			'B',		NCHAR(9821),  3)
@@ -169,44 +178,59 @@ INSERT INTO [Infrastructure].[Level]
 			)
      VALUES
 			-- random but rule-abiding action by the player (like a toddler)
-             ( 1, ' 5 year old child, no help',											0, 0,  0,  0,  0,  0,  0, 0, 0)
-           , ( 2, ' 5 year old child, preview enabled, help of grandmaster disabled',	1, 0,  0,  0,  0,  0,  0, 0, 0)
-		   , ( 3, ' 5 year old child, preview enabled, help of grandmaster enabled',	1, 1,  0,  0,  0,  0,  0, 0, 0)
+             ( 1, ' 5 yo, no help',							0, 0, 0, 0, 0, 0, 0, 0, 0)
+           , ( 2, ' 5 yo, preview only',					1, 0, 0, 0, 0, 0, 0, 0, 0)
+		   , ( 3, ' 5 yo, preview + grandmaster',			1, 1, 0, 0, 0, 0, 0, 0, 0)
 
 		   --  8yo child plays like 5oy child + calculate total figure value
-           , (11, ' 8 year old child, no help',											0, 0,  1,  0,  0,  0,  0, 0, 0)
-           , (12, ' 8 year old child, preview enabled, help of grandmaster disabled',	1, 0,  1,  0,  0,  0,  0, 0, 0)
-		   , (13, ' 8 year old child, preview enabled, help of grandmaster enabled',	1, 1,  1,  0,  0,  0,  0, 0, 0)
+           , (11, ' 8 yo, no help',							0, 0, 1, 0, 0, 0, 0, 0, 0)
+           , (12, ' 8 yo, preview only',					1, 0, 1, 0, 0, 0, 0, 0, 0)
+		   , (13, ' 8 yo, preview + grandmaster',			1, 1, 1, 0, 0, 0, 0, 0, 0)
 
 		   -- 12yo child plays like 8oy child + calculate numer of actions
-           , (21, '12 year old child, no help',											0, 0,  1,  1,  0,  0,  0, 0, 0)
-           , (22, '12 year old child, preview enabled, help of grandmaster disabled',	1, 0,  1,  1,  0,  0,  0, 0, 0)
-		   , (23, '12 year old child, preview enabled, help of grandmaster enabled',	1, 1,  1,  1,  0,  0,  0, 0, 0)
+           , (21, '12 yo, no help',							0, 0, 1, 1, 0, 0, 0, 0, 0)
+           , (22, '12 yo, preview only',					1, 0, 1, 1, 0, 0, 0, 0, 0)
+		   , (23, '12 yo, preview + grandmaster',			1, 1, 1, 1, 0, 0, 0, 0, 0)
 
 		   -- 14yo child plays like 12oy child + calculate numer of captures
-           , (31, '14 year old child, no help',											0, 0,  1,  1,  0,  0,  0, 0, 0)
-           , (32, '14 year old child, preview enabled, help of grandmaster disabled',	1, 0,  1,  1,  0,  0,  0, 0, 0)
-		   , (33, '14 year old child, preview enabled, help of grandmaster enabled',	1, 1,  1,  1,  0,  0,  0, 0, 0)
+           , (31, '14 yo, no help',							0, 0, 1, 1, 0, 0, 0, 0, 0)
+           , (32, '14 yo, preview only',					1, 0, 1, 1, 0, 0, 0, 0, 0)
+		   , (33, '14 yo, preview + grandmaster',			1, 1, 1, 1, 0, 0, 0, 0, 0)
 
 		   -- 16yo child plays like 14oy child + calculate numer of castles
-           , (41, '16 year old child, no help',											0, 0,  1,  1,  1,  0,  0, 0, 0)
-           , (42, '16 year old child, preview enabled, help of grandmaster disabled',	1, 0,  1,  1,  1,  0,  0, 0, 0)
-		   , (43, '16 year old child, preview enabled, help of grandmaster enabled',	1, 1,  1,  1,  1,  0,  0, 0, 0)
+           , (41, '16 yo, no help',							0, 0, 1, 1, 1, 0, 0, 0, 0)
+           , (42, '16 yo, preview only',					1, 0, 1, 1, 1, 0, 0, 0, 0)
+		   , (43, '16 yo, preview + grandmaster',			1, 1, 1, 1, 1, 0, 0, 0, 0)
 
 		   -- 18yo child plays like 16oy child + calculate status of pawn progress
-           , (51, '18 year old adult, no help',											0, 0,  1,  1,  1,  1,  0, 0, 0)
-           , (52, '18 year old adult, preview enabled, help of grandmaster disabled',	1, 0,  1,  1,  1,  1,  0, 0, 0)
-		   , (53, '18 year old adult, preview enabled, help of grandmaster enabled',	1, 1,  1,  1,  1,  1,  0, 0, 0)
+           , (51, '18 yo, no help',							0, 0, 1, 1, 1, 1, 0, 0, 0)
+           , (52, '18 yo, preview only',					1, 0, 1, 1, 1, 1, 0, 0, 0)
+           , (53, '18 yo, grandmaster only',				0, 1, 1, 1, 1, 1, 0, 0, 0)
+		   , (54, '18 yo, preview + grandmaster',			1, 1, 1, 1, 1, 1, 0, 0, 0)
 
 		   -- 25yo adult plays like 18oy adult + calculate number of yeomen
-           , (61, '25 year old adult, no help',											0, 0,  1,  1,  1,  1,  1, 0, 0)
-           , (62, '25 year old adult, preview enabled, help of grandmaster disabled',	1, 0,  1,  1,  1,  1,  1, 0, 0)
-		   , (63, '25 year old adult, preview enabled, help of grandmaster enabled',	1, 1,  1,  1,  1,  1,  1, 0, 0)
+           , (61, '25 yo, no help',							0, 0, 1, 1, 1, 1, 1, 0, 0)
+           , (62, '25 yo, preview only',					1, 0, 1, 1, 1, 1, 1, 0, 0)
+           , (63, '25 yo, grandmaster only',				0, 1, 1, 1, 1, 1, 1, 0, 0)
+		   , (64, '25 yo, preview + grandmaster',			1, 1, 1, 1, 1, 1, 1, 0, 0)
 
 		   -- 30yo adult plays like 25oy adult + calculate number of pawn chains
-           , (71, '30 year old adult, no help',											0, 0,  1,  1,  1,  1,  1, 1, 1)
-           , (72, '30 year old adult, preview enabled, help of grandmaster disabled',	1, 0,  1,  1,  1,  1,  1, 1, 1)
-		   , (73, '30 year old adult, preview enabled, help of grandmaster enabled',	1, 1,  1,  1,  1,  1,  1, 1, 1)
+           , (71, '30 yo, no help',							0, 0, 1, 1, 1, 1, 1, 1, 1)
+           , (72, '30 yo, preview only',					1, 0, 1, 1, 1, 1, 1, 1, 1)
+           , (73, '30 yo, grandmaster only',				0, 1, 1, 1, 1, 1, 1, 1, 1)
+		   , (74, '30 yo, preview + grandmaster',			1, 1, 1, 1, 1, 1, 1, 1, 1)
+
+		   -- Human player without any statistics
+           , (242, 'human',							0, 0, 0, 0, 0, 0, 0, 0, 0)
+           , (243, 'human, preview only',			1, 0, 0, 0, 0, 0, 0, 0, 0)
+           , (244, 'human, grandmaster only',		0, 1, 0, 0, 0, 0, 0, 0, 0)
+           , (245, 'human, preview + grandmaster',	1, 1, 0, 0, 0, 0, 0, 0, 0)
+
+		   -- Human player with statistics
+           , (252, 'human',							0, 0, 1, 1, 1, 1, 1, 1, 1)
+           , (253, 'human, preview only',			1, 0, 1, 1, 1, 1, 1, 1, 1)
+           , (254, 'human, grandmaster only',		0, 1, 1, 1, 1, 1, 1, 1, 1)
+           , (255, 'human, preview + grandmaster',	1, 1, 1, 1, 1, 1, 1, 1, 1)
 GO
 
 
@@ -220,17 +244,102 @@ INSERT INTO [Statistic].[PositionEvaluation]
            ([PositionEvaluationID], [Label], [White], [Black], [Comment])
      VALUES
              (	1,	'figure value:'			,	40, 40, 'Sum of the values of still active pieces per colour')
-           , (	2,	'#possible moves:'		,	20, 20, 'how many legal activitiescan each colour make in the next turn?')
-           , (	3,	'#possible captures:'	,	16, 16, 'how many fields are currently threatened/protected?')
-           , (	4,	'#possible castles:'	,	 2,  2, 'How many of the two theoretical castles are still available in principle (not only at present)?')
-           , (	5,	'status pawn progress:'	,	 0,  0, 'How far ahead are your own pawns? The further, the more valuable...')
-           , (	6,	'#yeomen:'				,	 0,  0, 'How many of your own pawns are yeoman pawns? The more the better?')
-           , (	7,	'status of pawn chains:',	 8,  8, 'are pawns able to protect each other?')
-		   , (  8,  'overall rating:'		, NULL,  0, 'positive values mean an advantage for white, negative for black')
+           , (	2,	'figure value:'			,	40, 40, 'Sum of the values of still active pieces per colour')
+           , (	3,	'possible moves:'		,	20, 20, 'how many legal activitiescan each colour make in the next turn?')
+           , (	4,	'dominated fields:'		,	 8,  8, 'how many fields are currently threatened/protected (for multiple times)?')
+           , (	5,	'possible captures:'	,	 0,  0, 'how many fields are currently threatened and occupied by foreign stones?')
+           , (	6,	'possible castles:'		,	 2,  2, 'How many of the two theoretical castles are still available in principle (not only at present)?')
+           , (	7,	'status pawn progress:'	,	 0,  0, 'How far ahead are your own pawns? The further, the more valuable...')
+           , (	8,	'yeomen:'				,	 0,  0, 'How many of your own pawns are yeoman pawns? The more the better?')
+           , (	9,	'status of pawn chains:',	14, 14, 'are pawns able to protect each other?')
 GO
 
 
 
+INSERT INTO [Infrastructure].[GameBoard]
+           ([Column], [Row], [Field], [EFNPositionNr], [IsPlayerWhite], [FigureLetter], [FigureUTF8])
+	SELECT 
+		  CHAR(([number] / 8) +	65)								AS [Column]
+		, ([number] % 8) + 1									AS [Row]
+		, [number] + 1											AS [Field]
+		, 56 - (([number] % 8) * 8) + ([number] / 8) + 1		AS [EFNPositionNr]
+		, NULL													AS [IsPlayerWhite]
+		, NULL													AS [FigureLetter]
+		, NULL													AS [FigureUTF8]
+	FROM  master..spt_values
+	WHERE 1 = 1
+		AND [type] = 'P'
+		AND [number] BETWEEN 0 AND 63
+GO
+
+
+
+INSERT INTO [CurrentGame].[GameStatus]
+	( [IsPlayerWhite], [RemainingTimeInSeconds], [TimestampLastOpponentMove], [IsShortCastlingStillAllowed]
+	 ,[IsLongCastlingStillAllowed], [Number50ActionsRule], [IsEnPassantPossible], [IsCheck], [IsMate])
+VALUES
+	  ( 'TRUE',		3*60*60, GETDATE(), 'TRUE', 'TRUE', 0, NULL, 'FALSE', 'FALSE')
+	, ( 'FALSE',	3*60*60, GETDATE(), 'TRUE', 'TRUE', 0, NULL, 'FALSE', 'FALSE')
+GO
+
+
+
+DECLARE @DiagColumn			AS CHAR(1)
+DECLARE @DiagRow			AS TINYINT
+DECLARE @DiagCounter		AS TINYINT
+
+SET @DiagCounter = 1
+
+WHILE @DiagCounter <= 64
+BEGIN
+
+	-- Diagonal Up-Right
+	SET @DiagColumn	= (SELECT CHAR(ASCII([Column]) + 1)	FROM [Infrastructure].[GameBoard] WHERE [Field] = @DiagCounter)
+	SET @DiagRow	= (SELECT [Row] + 1					FROM [Infrastructure].[GameBoard] WHERE [Field] = @DiagCounter)
+	WHILE @DiagColumn <= 'H' AND @DiagRow <= 8
+	BEGIN
+		INSERT INTO [Infrastructure].[DiagonalAllocation] ([Field], [DiagonalType], [TargetField])
+			VALUES (@DiagCounter, 'UR', (SELECT [Field] FROM [Infrastructure].[GameBoard] WHERE [Column] = @DiagColumn AND [Row] = @DiagRow))
+		SET @DiagColumn		= CHAR(ASCII(@DiagColumn) + 1)
+		SET @DiagRow		= @DiagRow + 1
+	END
+
+	-- Diagonal Up-Left
+	SET @DiagColumn	= (SELECT CHAR(ASCII([Column]) - 1)	FROM [Infrastructure].[GameBoard] WHERE [Field] = @DiagCounter)
+	SET @DiagRow	= (SELECT [Row] + 1					FROM [Infrastructure].[GameBoard] WHERE [Field] = @DiagCounter)
+	WHILE @DiagColumn >= 'A' AND @DiagRow <= 8
+	BEGIN
+		INSERT INTO [Infrastructure].[DiagonalAllocation] ([Field], [DiagonalType], [TargetField])
+			VALUES (@DiagCounter, 'UL', (SELECT [Field] FROM [Infrastructure].[GameBoard] WHERE [Column] = @DiagColumn AND [Row] = @DiagRow))
+		SET @DiagColumn		= CHAR(ASCII(@DiagColumn) - 1)
+		SET @DiagRow		= @DiagRow + 1
+	END
+
+	-- Diagonal Down-Left
+	SET @DiagColumn	= (SELECT CHAR(ASCII([Column]) - 1)	FROM [Infrastructure].[GameBoard] WHERE [Field] = @DiagCounter)
+	SET @DiagRow	= (SELECT [Row] - 1					FROM [Infrastructure].[GameBoard] WHERE [Field] = @DiagCounter)
+	WHILE @DiagColumn >= 'A' AND @DiagRow >= 1
+	BEGIN
+		INSERT INTO [Infrastructure].[DiagonalAllocation] ([Field], [DiagonalType], [TargetField])
+			VALUES (@DiagCounter, 'DL', (SELECT [Field] FROM [Infrastructure].[GameBoard] WHERE [Column] = @DiagColumn AND [Row] = @DiagRow))
+		SET @DiagColumn		= CHAR(ASCII(@DiagColumn) - 1)
+		SET @DiagRow		= @DiagRow - 1
+	END
+
+	-- Diagonal Down-Right
+	SET @DiagColumn	= (SELECT CHAR(ASCII([Column]) + 1)	FROM [Infrastructure].[GameBoard] WHERE [Field] = @DiagCounter)
+	SET @DiagRow	= (SELECT [Row] - 1					FROM [Infrastructure].[GameBoard] WHERE [Field] = @DiagCounter)
+	WHILE @DiagColumn <= 'H' AND @DiagRow >= 1
+	BEGIN
+		INSERT INTO [Infrastructure].[DiagonalAllocation] ([Field], [DiagonalType], [TargetField])
+			VALUES (@DiagCounter, 'DR', (SELECT [Field] FROM [Infrastructure].[GameBoard] WHERE [Column] = @DiagColumn AND [Row] = @DiagRow))
+		SET @DiagColumn		= CHAR(ASCII(@DiagColumn) + 1)
+		SET @DiagRow		= @DiagRow - 1
+	END
+
+	SET @DiagCounter  = @DiagCounter  + 1
+END
+GO
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------

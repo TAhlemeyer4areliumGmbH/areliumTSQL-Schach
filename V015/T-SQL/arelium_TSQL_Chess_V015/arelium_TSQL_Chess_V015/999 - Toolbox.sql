@@ -1,12 +1,10 @@
-
 -- ###########################################################################################
 -- ### arelium_TSQL_Chess_V015 ###############################################################
 -- ### the royal SQL game - project version ##################################################
 -- ###########################################################################################
--- ### Function [Infrastructure].[fncSecondsAsTimeFormatting]                              ###
+-- ### Collection of useful tools                                                          ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### A given number of seconds is converted into an indication of hours, minutes and     ###
--- ### seconds. The return format is a string of the form hh:mm:ss.                        ###
+-- ###                                                                                     ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Security note:                                                                      ###
 -- ###    This collection of commands is used to create, alter oder drop objects or insert ###
@@ -47,91 +45,48 @@
 
 
 --------------------------------------------------------------------------------------------------
--- Runtime statistics for this script ------------------------------------------------------------
+-- Kompatiblitaetsblock --------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
-
--- Create a temporary table to remember the start time
-BEGIN TRY
-	DROP TABLE #Start
-END TRY
-BEGIN CATCH
-END CATCH
-
-CREATE TABLE #Start (StartTime DATETIME)
-INSERT INTO #Start (StartTime) VALUES (GETDATE())
-
---------------------------------------------------------------------------------------------------
--- Compatibility block ---------------------------------------------------------------------------
---------------------------------------------------------------------------------------------------
-
--- Switch to the project database
-USE [arelium_TSQL_Chess_V015]
+USE [arelium_TSQL_Schach_V012]
 GO
 
--- Specifies that the equal (=) and unequal (<>) comparison operators must behave in an 
--- ISO-compliant manner when used with NULL values in SQL Server 2019 (15.x).
--- ANSI NULLS ON is a new T-SQL standard and will be fixed in later versions.
+-- Gibt an, dass sich die Vergleichsoperatoren Gleich (=) und Ungleich (<>) bei Verwendung mit NULL-Werten in SQL Server 2019 (15.x) ISO-konform verhalten muessen.
+-- ANSI NULLS ON ist neuer T-SQL Standard und wird in spaeteren Versionen festgeschrieben.
 SET ANSI_NULLS ON
 GO
 
--- Causes SQL Server to obey the ISO rules for leading characters in identifiers and literal strings.
+-- Bewirkt, dass SQL Server die ISO-Regeln fuer Anfuehrungszeichen bei Bezeichnern und Literalzeichenfolgen befolgt.
 SET QUOTED_IDENTIFIER ON
 GO
 
 
 
---------------------------------------------------------------------------------------------------
--- Clean-up --------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------------
-
--- All objects that are created or changed by this script are listed here. Since some DDL
--- commands do not have an IF-EXISTS syntax, this is the first place to clean up the list. Existing 
--- objects are deleted by DROP, so that they can be re-created later in an orderly fashion.
 
 
---------------------------------------------------------------------------------------------------
--- Construction work -----------------------------------------------------------------------------
---------------------------------------------------------------------------------------------------
-CREATE OR ALTER FUNCTION [Infrastructure].[fncSecondsAsTimeFormatting]
-(
-    @Seconds AS INTEGER
-)
-RETURNS CHAR(8)
-AS
-BEGIN
-	DECLARE @ReturnValue		AS CHAR(19)
-	SET @ReturnValue = CASE WHEN @Seconds >= 86400
-                THEN CONVERT(VARCHAR(5), @Seconds/86400) 
-                + ' days ' 
-                ELSE ''
-                END
-       + CONVERT(VARCHAR(8), DATEADD(SECOND, @Seconds, 0), 108)
 
-	RETURN @ReturnValue
-END
+-- ********************************************************************************
+-- *** Correct database in "Restore pending" status                             ***
+-- ********************************************************************************
+
+-- 1. Query of databases and status (identification of problem cases) 
+SELECT name, state_desc from sys.databases
 GO
 
-
-------------------------------------------------------------------------------------------------------------------------------------------------------
--- Statistics ---------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------------------------------------
-DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
-DECLARE @End		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
-DECLARE @Time		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Script		VARCHAR(100)	= '116 - Function [Infrastructure].[fncSecondsAsTimeFormatting].sql'
-PRINT ' '
-PRINT 'Script     :   ' + @Script
-PRINT 'End        :   ' + @End
-PRINT 'Time       :   ' + @Time
-SELECT @Script AS Skript, @End AS Ende, @Time AS Zeit
+-- 2. Set database to emergency mode
+ALTER DATABASE [arelium_TSQL_Chess_V015] SET EMERGENCY;
 GO
 
-
-/*
-USE [arelium_TSQL_Chess_V015]
+--3. Set database to single user mode
+ALTER DATABASE [arelium_TSQL_Chess_V015] set single_user;
 GO
 
-SELECT [Infrastructure].[fncSecondsAsTimeFormatting](5390)
+-- 4. Remove or rename log file in the path
+--  for example: rename ...MSSQL\DATA\_log.ldf to ...MSSQL\DATA\_log2.ldf 
+
+-- 5. Execute DB Check
+DBCC CHECKDB ([arelium_TSQL_Chess_V015], REPAIR_ALLOW_DATA_LOSS) WITH ALL_ERRORMSGS;
 GO
 
-*/
+-- 6. Set database back to normal mode
+ALTER DATABASE [arelium_TSQL_Chess_V015] set multi_user;
+GO

@@ -2,18 +2,13 @@
 -- ### arelium_TSQL_Chess_V015 ###############################################################
 -- ### the royal SQL game - project version ##################################################
 -- ###########################################################################################
--- ### View [CurrentGame].[vCapturedFigures]                                               ###
+-- ### Function [Infrastructure].[fncCastlingPossibilities]                                ###
 -- ### ----------------------------------------------------------------------------------- ###
--- ### This view determines the already captured pieces of both players. For this purpose, ###
--- ### the pieces of the current position are compared with those of the starting          ###
--- ### position. Deviations are displayed graphically, whereby a distinction is made       ###
--- ### between pawns and other pieces.                                                     ###
--- ###                                                                                     ###
--- ### The result contains an "ID" column. It is used for the JOIN possibility to display  ###
--- ### the individual blocks of the dashboard (the overall view from the board, move       ###
--- ### preview, captured pieces, statistics for the position evaluation, ...). The         ###
--- ### graphical representation of the pieces uses the REPLICATE statement to put the      ###
--- ### correct number of elements one after the other.                                     ###                   
+-- ### The table [CurrentGame].[GameStatus] shows which castles are still possible for     ###
+-- ### which game colour. This function turns this information into a string of the form   ### 
+-- ### "KnQq", where the capital letters stand for the white and the small letters for the ### 
+-- ### black game colour. The (K)ing stands for the short castling (kingside) and (Q)ueen  ### 
+-- ### for the long castling (queenside).                                                  ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Security note:                                                                      ###
 -- ###    This collection of commands is used to create, alter oder drop objects or insert ###
@@ -38,7 +33,7 @@
 -- ### to make the chess programme known worldwide.                                        ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Changelog:                                                                          ###
--- ###     15.00.0   2023-07-07 Torsten Ahlemeyer                                          ###
+-- ###     15.00.0   2023-09-21 Torsten Ahlemeyer                                          ###
 -- ###               Initial creation with default values                                  ###
 -- ###########################################################################################
 -- ### COPYRIGHT notice  (see https://creativecommons.org/licenses/by-nc-sa/3.0/de/)       ###
@@ -95,38 +90,33 @@ GO
 -- commands do not have an IF-EXISTS syntax, this is the first place to clean up the list. Existing 
 -- objects are deleted by DROP, so that they can be re-created later in an orderly fashion.
 
+
+
 --------------------------------------------------------------------------------------------------
 -- Construction work -----------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
-
-CREATE OR ALTER VIEW [CurrentGame].[vCapturedFigures]
+CREATE OR ALTER FUNCTION [Infrastructure].[fncCastlingPossibilities] ()
+RETURNS CHAR(4)
 AS
+BEGIN
+	DECLARE @ReturnString		AS CHAR(4)
 
-	SELECT
-		  1				AS [ID]
-		, REPLICATE(NCHAR(9817), (SELECT 8 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'P'))
-						AS [captured piece(s)]
-	UNION ALL
-	SELECT
-		  2
-		, REPLICATE(NCHAR(9815), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'B'))
-		+ REPLICATE(NCHAR(9816), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'N'))
-		+ REPLICATE(NCHAR(9814), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'R'))
-		+ REPLICATE(NCHAR(9813), (SELECT 1 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'TRUE' AND [FigureLetter] = 'Q'))
-	UNION ALL
-	SELECT 3,''
-	UNION ALL
-	SELECT
-		  4	
-		, REPLICATE(NCHAR(9823), (SELECT 8 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'P'))
-	UNION ALL
-	SELECT
-		  5
-		, REPLICATE(NCHAR(9821), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'B'))
-		+ REPLICATE(NCHAR(9822), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'N'))
-		+ REPLICATE(NCHAR(9820), (SELECT 2 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'R'))
-		+ REPLICATE(NCHAR(9819), (SELECT 1 - COUNT(*) FROM [Infrastructure].[GameBoard] WHERE [IsPlayerWhite] = 'FALSE' AND [FigureLetter] = 'Q'))
+	SET @ReturnString = 
+	(
+		SELECT
+		(
+			  (SELECT CASE [IsShortCastlingStillAllowed]	WHEN 1 THEN 'K' ELSE ' ' END FROM [CurrentGame].[GameStatus] WHERE [IsPlayerWhite] = 1)
+			+ (SELECT CASE [IsShortCastlingStillAllowed]	WHEN 1 THEN 'k' ELSE ' ' END FROM [CurrentGame].[GameStatus] WHERE [IsPlayerWhite] = 0)
+			+ (SELECT CASE [IsLongCastlingStillAllowed]		WHEN 1 THEN 'Q' ELSE ' ' END FROM [CurrentGame].[GameStatus] WHERE [IsPlayerWhite] = 1)
+			+ (SELECT CASE [IsLongCastlingStillAllowed]		WHEN 1 THEN 'q' ELSE ' ' END FROM [CurrentGame].[GameStatus] WHERE [IsPlayerWhite] = 0)
+		) 
+	)
+
+	RETURN @ReturnString
+END
 GO
+
+
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Statistics ---------------------------------------------------------------------------------------------------------------------------------------
@@ -134,7 +124,7 @@ GO
 DECLARE @StartTime	DATETIME		= (SELECT StartTime FROM #Start)
 DECLARE @End		VARCHAR(25)		= CONVERT(VARCHAR(25), GETDATE(), 104) + '   ' +CONVERT(VARCHAR(25), GETDATE(), 114)
 DECLARE @Time		VARCHAR(500)	= CAST(DATEDIFF(SS, @StartTime, GETDATE()) AS VARCHAR(10)) + ',' + CAST(DATEPART(MS, GETDATE() - @StartTime) AS VARCHAR(10)) + ' sek.'
-DECLARE @Script		VARCHAR(100)	= '111 - View [CurrentGame].[vCapturedFigures].sql'
+DECLARE @Script		VARCHAR(100)	= '084 - Function [Infrastructure].[fncCastlingPossibilities].sql'
 PRINT ' '
 PRINT 'Script     :   ' + @Script
 PRINT 'End        :   ' + @End
@@ -144,10 +134,8 @@ GO
 
 
 /*
-USE [arelium_TSQL_Chess_V015]
-GO
+-- Test der Funktion [Infrastructure].[fncCastlingPossibilities]
 
-SELECT * FROM [CurrentGame].[vCapturedFigures]
+SELECT [Infrastructure].[fncCastlingPossibilities]()
 GO
-
 */

@@ -24,6 +24,15 @@
 -- ### A big thank you goes to (MVP) Uwe Ricken, who helped the project with motivation,   ###
 -- ### advice and especially (but not only) in the area of runtime optimisation and        ###
 -- ### continues to do so (https://www.db-berater.de/).                                    ###
+-- ###                                                                                     ###
+-- ### Another thank you goes to Ralph Kemperdick, who supports the project in an advisory ###
+-- ### capacity. With his large network, especially in the Microsoft world, he makes many  ###
+-- ### problem-solving approaches possible in the first place.                             ###
+-- ###                                                                                     ###
+-- ### Also extremely helpful is Buck Woody. The long-time Microsoft employee was          ###
+-- ### persuaded by this project at a conference and has since supported it with his       ###
+-- ### enormous reach and experience in adult education. Buck knows the perfect contacts   ###
+-- ### to make the chess programme known worldwide.                                        ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Changelog:                                                                          ###
 -- ###     15.00.0   2023-07-07 Torsten Ahlemeyer                                          ###
@@ -99,14 +108,14 @@ SELECT
 	, ISNULL([LN].[Moveblack], '')						AS [MoveBlack]
 	, '|'												AS [?]
 	, [POV_White].[.]									AS [,.]
-	, [POV_White].[A]									AS [A.]
-	, [POV_White].[B]									AS [B.]
-	, [POV_White].[C]									AS [C.]
-	, [POV_White].[D]									AS [D.]
-	, [POV_White].[E]									AS [E.]
-	, [POV_White].[F]									AS [F.]
-	, [POV_White].[G]									AS [G.]
-	, [POV_White].[H]									AS [H.]
+	, ISNULL([POV_White].[A], '')						AS [A.]
+	, ISNULL([POV_White].[B], '')						AS [B.]
+	, ISNULL([POV_White].[C], '')						AS [C.]
+	, ISNULL([POV_White].[D], '')						AS [D.]
+	, ISNULL([POV_White].[E], '')						AS [E.]
+	, ISNULL([POV_White].[F], '')						AS [F.]
+	, ISNULL([POV_White].[G], '')						AS [G.]
+	, ISNULL([POV_White].[H], '')						AS [H.]
 	, [POV_White].[..]									AS [.]
 	, '|'												AS [..]
 	, CASE [POV_White].[OrderNr]
@@ -115,54 +124,62 @@ SELECT
 			+ ':'
 			END
 		WHEN 2 THEN N'Remaining time: '
-		WHEN 3 THEN N'50-Moves-Rule: '
-		WHEN 4 THEN N'Turn: '
-		WHEN 5 THEN N'en-passant: '
-		WHEN 6 THEN N'Evaluation: '
-		WHEN 7 THEN N'50-Moves-Rule: '
-		WHEN 8 THEN N'Black: '
-			+ CASE (SELECT [LevelID] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite] = 'FALSE') WHEN 1 THEN N'' ELSE '(Comp)'
-			+ ':'
-			END
-		WHEN 9 THEN N'Remaining time: '
+		WHEN 3 THEN N'Configured level: '
+		WHEN 5 THEN N'Evaluation: '
+		WHEN 8 THEN N'50-Moves-Rule: '
+		WHEN 9 THEN N'is check: '
 		ELSE ''
 	END													AS [ ]
 	, CASE [POV_White].[OrderNr]
-		WHEN 1 THEN (SELECT [NameOfPlayer] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite] = 'TRUE')
-		WHEN 2 THEN [Infrastructure].[fncSecondsAsTimeFormatting]((SELECT [RemainingTimeInSeconds] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite]= 'TRUE'))
-		WHEN 3 THEN (SELECT CONVERT(CHAR(3), [Number50ActionsRule]) FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite] = 'TRUE')
-		WHEN 4 THEN CASE [CurrentGame].[fncIsNextMoveWhite]() WHEN 'TRUE' THEN 'White' ELSE 'Black' END
-		WHEN 5 THEN ISNULL((SELECT [IsEnPassantPossible] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite]= (([CurrentGame].[fncIsNextMoveWhite]() + 1) % 2)), '')
-		--WHEN 6 THEN CONVERT(VARCHAR(8), [Statistik].[fncAktuelleStellungBewerten]())
-		WHEN 7 THEN (SELECT CONVERT(CHAR(3), [Number50ActionsRule]) FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite]= 'FALSE')
-		WHEN 8 THEN (SELECT [NameOfPlayer] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite]= 'FALSE')
-		WHEN 9 THEN [Infrastructure].[fncSecondsAsTimeFormatting]((SELECT [RemainingTimeInSeconds] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite]= 'FALSE'))
+		WHEN 1 THEN ISNULL((SELECT [NameOfPlayer] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite] = 'TRUE'), '')
+		WHEN 2 THEN ISNULL([Infrastructure].[fncSecondsAsTimeFormatting]((SELECT [RemainingTimeInSeconds] FROM [CurrentGame].[GameStatus] WHERE [IsPlayerWhite]= 'TRUE')), '')
+		WHEN 3 THEN ISNULL((SELECT [LEV].[Plaintext] FROM [CurrentGame].[Configuration] AS [CUG] LEFT JOIN [Infrastructure].[Level] AS [LEV] ON [CUG].[LevelID] = [LEV].[LevelID] WHERE [IsPlayerWhite] = 'TRUE'), '')
+		WHEN 5 THEN ISNULL(FORMAT(CONVERT(FLOAT, (SELECT ISNULL([Black], '') FROM [Statistic].[PositionEvaluation] WHERE [Label] = 'overall rating:')), '0.0#'), 'balanced')
+		WHEN 8 THEN ISNULL((SELECT CONVERT(CHAR(3), [Number50ActionsRule]) FROM [CurrentGame].[GameStatus] WHERE [IsPlayerWhite]= 'TRUE'), '')
+		WHEN 9 THEN CASE (SELECT MAX(CONVERT(TINYINT, [IsCheck])) FROM [CurrentGame].[GameStatus]) WHEN 1 THEN NCHAR(9995) ELSE '' END
 		ELSE ''
 	END													AS [_]
+	, CASE [POV_White].[OrderNr]
+		WHEN 1 THEN N'Black: '
+			+ CASE (SELECT [LevelID] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite] = 'FALSE') WHEN 1 THEN N'' ELSE '(Comp)'
+			+ ':'
+			END
+		WHEN 2 THEN N'Remaining time: '
+		WHEN 3 THEN N'Configured level: '
+		WHEN 5 THEN N'Turn: '
+		WHEN 8 THEN N'en-passant: '
+		WHEN 9 THEN N'is mate: '
+		ELSE ''
+	END													AS [~]
+	, CASE [POV_White].[OrderNr]
+		WHEN 1 THEN ISNULL((SELECT [NameOfPlayer] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite]= 'FALSE'), '')
+		WHEN 2 THEN ISNULL([Infrastructure].[fncSecondsAsTimeFormatting]((SELECT [RemainingTimeInSeconds] FROM [CurrentGame].[GameStatus] WHERE [IsPlayerWhite]= 'FALSE')), '')
+		WHEN 3 THEN ISNULL((SELECT [LEV].[Plaintext] FROM [CurrentGame].[Configuration] AS [CUG] LEFT JOIN [Infrastructure].[Level] AS [LEV] ON [CUG].[LevelID] = [LEV].[LevelID] WHERE [IsPlayerWhite] = 'FALSE'), '')
+		WHEN 5 THEN ISNULL(CASE [CurrentGame].[fncIsNextMoveWhite]() WHEN 'TRUE' THEN 'White' ELSE 'Black' END, '')
+		WHEN 8 THEN ISNULL((SELECT CONVERT(VARCHAR(10), [IsEnPassantPossible]) FROM [CurrentGame].[GameStatus] WHERE [IsPlayerWhite]= (([CurrentGame].[fncIsNextMoveWhite]() + 1) % 2)), 'impossible')
+		WHEN 9 THEN CASE (SELECT MAX(CONVERT(TINYINT, [IsMate])) FROM [CurrentGame].[GameStatus]) WHEN 1 THEN NCHAR(9995) ELSE '' END
+		ELSE ''
+	END													AS [+]
 	, '|'												AS [,,]
-	, [POV_Black].[.]								AS [,]
-	, [POV_Black].[H]								AS [H,]
-	, [POV_Black].[G]								AS [G,]
-	, [POV_Black].[F]								AS [F,]
-	, [POV_Black].[E]								AS [E,]
-	, [POV_Black].[D]								AS [D,]
-	, [POV_Black].[C]								AS [C,]
-	, [POV_Black].[B]								AS [B,]
-	, [POV_Black].[A]								AS [A,]
-	, [POV_Black].[..]								AS [.,]
-	, ISNULL([GF].[captured piece(s)], '')			AS [captured piece(s)]
+	, [POV_Black].[.]									AS [,]
+	, ISNULL([POV_Black].[H], '')						AS [H,]
+	, ISNULL([POV_Black].[G], '')						AS [G,]
+	, ISNULL([POV_Black].[F], '')						AS [F,]
+	, ISNULL([POV_Black].[E], '')						AS [E,]
+	, ISNULL([POV_Black].[D], '')						AS [D,]
+	, ISNULL([POV_Black].[C], '')						AS [C,]
+	, ISNULL([POV_Black].[B], '')						AS [B,]
+	, ISNULL([POV_Black].[A], '')						AS [A,]
+	, [POV_Black].[..]									AS [.,]
+	, ISNULL([GF].[captured piece(s)], '')				AS [captured piece(s)]
 	, '|'												AS [;]
-	--, CASE (SELECT [ComputerSchritteAnzeigen] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite]= (([CurrentGame].[fncIsNextMoveWhite]() + 1) % 2)) 
-	--		WHEN 'TRUE' THEN ISNULL([MA].[LongNotation], '')
-	--		ELSE '---'									
-	--	END												AS [Zugideen]
+	, CASE WHEN (SELECT [LevelID] FROM [CurrentGame].[Configuration] WHERE [IsPlayerWhite] = [CurrentGame].[fncIsNextMoveWhite]()) > 200 
+		THEN ISNULL([MA].[LongNotation], '') ELSE 'not configured ' END
+														AS [action ideas]
 	, '|'												AS [:]
-	, ISNULL([BE].[Label], '')							AS [Kriterium]
+	, ISNULL([BE].[Label], '')							AS [Criteria]
 	, ISNULL([BE].[White], '')							AS [White]
-	, CASE [BE].[Label] 
-		WHEN 'overall rating:' THEN FORMAT(CONVERT(FLOAT, ISNULL([BE].[Black], '')), '0.0#')	
-		ELSE ISNULL([BE].[Black], '')
-	   END												AS [Black]
+	, ISNULL([BE].[Black], '')							AS [Black]
 	, ISNULL([GMP].[Value], '')							AS [Library]
 FROM
 	(

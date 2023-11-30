@@ -31,6 +31,12 @@
     </LogicalFolder>
     <LogicalFolder Name="Abfragen" Type="0" Sorted="true">
       <Items>
+        <FileNode Name="000 - Overall script.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>000 - Overall script.sql</FullPath>
+        </FileNode>
         <FileNode Name="002 - Create Database.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
@@ -49,17 +55,11 @@
           <AssociatedConnUserName />
           <FullPath>012 - Insert content initially.sql</FullPath>
         </FileNode>
-        <FileNode Name="021 - set up basic position.sql">
+        <FileNode Name="031 - Procedure [Infrastructure].[prcInitialisationOfTheoreticalActions].sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>021 - set up basic position.sql</FullPath>
-        </FileNode>
-        <FileNode Name="031 - Procedur [Infrastructure].[prcInitialisationOfTheoreticalActions].sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>031 - Procedur [Infrastructure].[prcInitialisationOfTheoreticalActions].sql</FullPath>
+          <FullPath>031 - Procedure [Infrastructure].[prcInitialisationOfTheoreticalActions].sql</FullPath>
         </FileNode>
         <FileNode Name="041 - Functions [CurrentGame].[fncPossibleActions_xxx].sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
@@ -67,11 +67,41 @@
           <AssociatedConnUserName />
           <FullPath>041 - Functions [CurrentGame].[fncPossibleActions_xxx].sql</FullPath>
         </FileNode>
-        <FileNode Name="083 - Function [Spiel].[fncIsNextMoveWhite].sql">
+        <FileNode Name="042 - Procedure [CurrentGame].[prcPossibleActions].sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>083 - Function [Spiel].[fncIsNextMoveWhite].sql</FullPath>
+          <FullPath>042 - Procedure [CurrentGame].[prcPossibleActions].sql</FullPath>
+        </FileNode>
+        <FileNode Name="083 - Function [CurrentGame].[fncIsNextMoveWhite].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>083 - Function [CurrentGame].[fncIsNextMoveWhite].sql</FullPath>
+        </FileNode>
+        <FileNode Name="084 - Function [Infrastructure].[fncCastlingPossibilities].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>084 - Function [Infrastructure].[fncCastlingPossibilities].sql</FullPath>
+        </FileNode>
+        <FileNode Name="085 - Function [CurrentGame].[fncIsFieldThreatened].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>085 - Function [CurrentGame].[fncIsFieldThreatened].sql</FullPath>
+        </FileNode>
+        <FileNode Name="086 - Function [CurrentGame].[fncIsMate].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>086 - Function [CurrentGame].[fncIsMate].sql</FullPath>
+        </FileNode>
+        <FileNode Name="110 - View [Infrastructure].[vLogo].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>110 - View [Infrastructure].[vLogo].sql</FullPath>
         </FileNode>
         <FileNode Name="111 - View [CurrentGame].[vCapturedFigures].sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
@@ -115,6 +145,18 @@
           <AssociatedConnUserName />
           <FullPath>500 - Function [CurrentGame].[prcInitialisation].sql</FullPath>
         </FileNode>
+        <FileNode Name="610 - Procedure [Infrastruktur].[prcImportEFN].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>610 - Procedure [Infrastruktur].[prcImportEFN].sql</FullPath>
+        </FileNode>
+        <FileNode Name="611 - Procedure [Infrastruktur].[prcEFNString2Position].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>611 - Procedure [Infrastruktur].[prcEFNString2Position].sql</FullPath>
+        </FileNode>
         <FileNode Name="612 - Function [Infrastructure].[fncPosition2EFN].sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
@@ -127,11 +169,41 @@
           <AssociatedConnUserName />
           <FullPath>614 - Function [Infrastructure].[fncEFN2Position].sql</FullPath>
         </FileNode>
-        <FileNode Name="SQLQuery1.sql">
+        <FileNode Name="620 - Procedure [Infrastructure].[prcSetUpBasicPosition].sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>SQLQuery1.sql</FullPath>
+          <FullPath>620 - Procedure [Infrastructure].[prcSetUpBasicPosition].sql</FullPath>
+        </FileNode>
+        <FileNode Name="708 - Procedure [CurrentGame].[prcMovePieces].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>708 - Procedure [CurrentGame].[prcMovePieces].sql</FullPath>
+        </FileNode>
+        <FileNode Name="710 - Procedure [CurrentGame].[prcPerformAnAction].sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>710 - Procedure [CurrentGame].[prcPerformAnAction].sql</FullPath>
+        </FileNode>
+        <FileNode Name="800 - Indexing for runtime optimisation.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>800 - Indexing for runtime optimisation.sql</FullPath>
+        </FileNode>
+        <FileNode Name="900 - example 001 - the fool's mate.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>900 - example 001 - the fool's mate.sql</FullPath>
+        </FileNode>
+        <FileNode Name="999 - Toolbox.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local):True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>999 - Toolbox.sql</FullPath>
         </FileNode>
       </Items>
     </LogicalFolder>

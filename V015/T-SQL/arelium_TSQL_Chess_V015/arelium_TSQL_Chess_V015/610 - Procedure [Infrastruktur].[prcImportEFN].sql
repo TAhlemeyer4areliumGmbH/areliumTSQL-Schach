@@ -23,6 +23,15 @@
 -- ### A big thank you goes to (MVP) Uwe Ricken, who helped the project with motivation,   ###
 -- ### advice and especially (but not only) in the area of runtime optimisation and        ###
 -- ### continues to do so (https://www.db-berater.de/).                                    ###
+-- ###                                                                                     ###
+-- ### Another thank you goes to Ralph Kemperdick, who supports the project in an advisory ###
+-- ### capacity. With his large network, especially in the Microsoft world, he makes many  ###
+-- ### problem-solving approaches possible in the first place.                             ###
+-- ###                                                                                     ###
+-- ### Also extremely helpful is Buck Woody. The long-time Microsoft employee was          ###
+-- ### persuaded by this project at a conference and has since supported it with his       ###
+-- ### enormous reach and experience in adult education. Buck knows the perfect contacts   ###
+-- ### to make the chess programme known worldwide.                                        ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Changelog:                                                                          ###
 -- ###     15.00.0   2023-07-07 Torsten Ahlemeyer                                          ###
@@ -94,19 +103,23 @@ BEGIN
 	SET NOCOUNT ON;
 
 	DECLARE @PositionString			AS VARCHAR(64)
-	DECLARE @Loop				AS TINYINT
+	DECLARE @Loop					AS TINYINT
 	DECLARE @StringPart				AS VARCHAR(8)
+	DECLARE @Castling				AS VARCHAR(8)
 	DECLARE @ID						AS TINYINT
 	DECLARE @Letter					AS CHAR(1)
 	DECLARE @IsPlayerWhite			AS BIT
 	DECLARE @EnPassantField			AS TINYINT
 	DECLARE @FiftyMovesRule			AS TINYINT
-	DECLARE @ActionCounter				AS INTEGER
+	DECLARE @ActionCounter			AS INTEGER
+	DECLARE @NextPlayer				AS CHAR(1)
+	DECLARE @SaveEFN				AS VARCHAR(100)
+
+	SET @SaveEFN = @EFN
 
 	-- --------------------------------------------------------------
 	-- Step 1: 8 rows in EFN string 
 	-- --------------------------------------------------------------
-
 	-- The board data is extracted from the EFN string.
 	SET @PositionString		= LEFT(@EFN, CHARINDEX(' ', @EFN))
 	SET @EFN				= TRIM(RIGHT(@EFN, LEN(@EFN) - LEN(@PositionString)))
@@ -118,52 +131,17 @@ BEGIN
 	INTO #TempPosition
 	FROM STRING_SPLIT(@PositionString, '/');
 
-
 	-- --------------------------------------------------------------
 	-- Step 2: 8 squares per row
 	-- --------------------------------------------------------------
-
-	CREATE TABLE #TempPosition2([ID] TINYINT NOT NULL, [Position] [VARCHAR](8) NOT NULL) 
-
-	DECLARE curEFN CURSOR FOR   
-		SELECT [ID], [Value]
-		FROM #TempPosition
-		ORDER BY [ID] DESC;  
-
-	OPEN curEFN
-  
-	FETCH NEXT FROM curEFN INTO @ID, @StringPart
-	WHILE @@FETCH_STATUS = 0  
-	BEGIN 
-		SET @PositionString	= ''
-		SET @Loop			= 1
-		WHILE @Loop<= 8
-		BEGIN
-			SET @Letter			= SUBSTRING(@StringPart, 1, 1)
-
-			IF ISNUMERIC(@Letter) = 1
-			BEGIN
-				SET @PositionString	= @PositionString + REPLICATE('$', CONVERT(TINYINT, @Letter))
-				SET @Loop			= @Loop+ CONVERT(TINYINT, @Letter) 
-			END
-			ELSE
-			BEGIN
-				SET @PositionString	= @PositionString + @Letter
-				SET @Loop			= @Loop+ 1
-			END
-
-			SET @StringPart = RIGHT(@StringPart, LEN(@StringPart) - 1)
-
-		END		
-
-		INSERT INTO #TempPosition2([ID], [Position])
-		SELECT @ID, @PositionString
-
-		FETCH NEXT FROM curEFN INTO @ID, @StringPart
-	END
-	CLOSE curEFN;  
-	DEALLOCATE curEFN; 
-
+	UPDATE #TempPosition SET [Value] = REPLACE([Value], '8', REPLICATE('$', 8))
+	UPDATE #TempPosition SET [Value] = REPLACE([Value], '7', REPLICATE('$', 7))
+	UPDATE #TempPosition SET [Value] = REPLACE([Value], '6', REPLICATE('$', 6))
+	UPDATE #TempPosition SET [Value] = REPLACE([Value], '5', REPLICATE('$', 5))
+	UPDATE #TempPosition SET [Value] = REPLACE([Value], '4', REPLICATE('$', 4))
+	UPDATE #TempPosition SET [Value] = REPLACE([Value], '3', REPLICATE('$', 3))
+	UPDATE #TempPosition SET [Value] = REPLACE([Value], '2', REPLICATE('$', 2))
+	UPDATE #TempPosition SET [Value] = REPLACE([Value], '1', REPLICATE('$', 1))
 
 	-- --------------------------------------------------------------
 	-- Step 3: Evaluate the position information of the figures
@@ -171,8 +149,8 @@ BEGIN
 
 	-- Now the information from the EFN string is converted into UPDATE statements.
 	DECLARE curImoprt CURSOR FOR   
-		SELECT [ID], [Position]
-		FROM #TempPosition2
+		SELECT [ID], [Value]
+		FROM #TempPosition
 		ORDER BY [ID] DESC;  
 
 	OPEN curImoprt
@@ -192,35 +170,35 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				IF @Letter <> @Letter COLLATE Latin1_General_CS_AI
+				IF UPPER(@Letter COLLATE Latin1_General_CS_AI) <> @Letter COLLATE Latin1_General_CS_AI
 				BEGIN
-					SET @IsPlayerWhite = 'TRUE'
+					SET @IsPlayerWhite = 'FALSE'
 				END
 				ELSE
 				BEGIN
-					SET @IsPlayerWhite = 'FALSE'
+					SET @IsPlayerWhite = 'TRUE'
 				END
 			END
 
 			UPDATE [Infrastructure].[GameBoard]
 			SET	  [IsPlayerWhite]		= @IsPlayerWhite
-				, [FigurBuchstabe]		= (SELECT	CASE @Letter
-														WHEN '$' COLLATE Latin1_General_CS_AI THEN '?'
-														WHEN 'r' COLLATE Latin1_General_CS_AI THEN 'T'
-														WHEN 'R' COLLATE Latin1_General_CS_AI THEN 'T'
-														WHEN 'n' COLLATE Latin1_General_CS_AI THEN 'S'
-														WHEN 'N' COLLATE Latin1_General_CS_AI THEN 'S'
-														WHEN 'b' COLLATE Latin1_General_CS_AI THEN 'L'
-														WHEN 'B' COLLATE Latin1_General_CS_AI THEN 'L'
-														WHEN 'q' COLLATE Latin1_General_CS_AI THEN 'D'
-														WHEN 'Q' COLLATE Latin1_General_CS_AI THEN 'D'
+				, [FigureLetter]		= (SELECT	CASE @Letter
+														WHEN '$' COLLATE Latin1_General_CS_AI THEN NULL
+														WHEN 'r' COLLATE Latin1_General_CS_AI THEN 'R'
+														WHEN 'R' COLLATE Latin1_General_CS_AI THEN 'R'
+														WHEN 'n' COLLATE Latin1_General_CS_AI THEN 'N'
+														WHEN 'N' COLLATE Latin1_General_CS_AI THEN 'N'
+														WHEN 'b' COLLATE Latin1_General_CS_AI THEN 'B'
+														WHEN 'B' COLLATE Latin1_General_CS_AI THEN 'B'
+														WHEN 'q' COLLATE Latin1_General_CS_AI THEN 'Q'
+														WHEN 'Q' COLLATE Latin1_General_CS_AI THEN 'Q'
 														WHEN 'k' COLLATE Latin1_General_CS_AI THEN 'K'
 														WHEN 'K' COLLATE Latin1_General_CS_AI THEN 'K'
-														WHEN 'p' COLLATE Latin1_General_CS_AI THEN 'B'
-														WHEN 'P' COLLATE Latin1_General_CS_AI THEN 'B'
+														WHEN 'p' COLLATE Latin1_General_CS_AI THEN 'P'
+														WHEN 'P' COLLATE Latin1_General_CS_AI THEN 'P'
 													END
 											)
-				, [FigurUTF8]			= (SELECT	CASE @Letter
+				, [FigureUTF8]			= (SELECT	CASE @Letter
 														WHEN '$' COLLATE Latin1_General_CS_AI THEN 160
 														WHEN 'r' COLLATE Latin1_General_CS_AI THEN 9820
 														WHEN 'R' COLLATE Latin1_General_CS_AI THEN 9814
@@ -236,94 +214,71 @@ BEGIN
 														WHEN 'P' COLLATE Latin1_General_CS_AI THEN 9817
 													END
 											)
-			WHERE [Feld] = (@Loop- 1) * 8 + @ID
-			SET @Loop			= @Loop+ 1
+			WHERE [Field]	= (@Loop- 1) * 8 + @ID
+
+			SET @Loop		= @Loop+ 1
 			SET @StringPart = RIGHT(@StringPart, LEN(@StringPart) - 1)
-
 		END		
-
-		INSERT INTO #TempPosition2([ID], [Position])
-		SELECT @ID, @PositionString
 
 		FETCH NEXT FROM curImoprt INTO @ID, @StringPart
 	END
 	CLOSE curImoprt;  
 	DEALLOCATE curImoprt; 
-	
+
 	DROP TABLE #TempPosition
-	DROP TABLE #TempPosition2
+
+	
+	-- --------------------------------------------------------------
+	-- Step 4: next player
+	-- --------------------------------------------------------------
+
+	SET @NextPlayer = LEFT(@EFN, 1)
+
 
 	-- --------------------------------------------------------------
-	-- Schritt 4: Notation und damit das Zugrecht anpassen
-	-- --------------------------------------------------------------
-
-	INSERT INTO [Spiel].[Notation]
-        ([VollzugID]
-        ,[IsPlayerWhite]
-        ,[TheoretischeAktionenID]
-        ,[LangeNotation]
-        ,[KurzeNotationEinfach]
-        ,[KurzeNotationKomplex]
-        ,[ZugIstSchachgebot])
-	VALUES
-        (0, 1, (SELECT MIN([TheoretischeAktionenID]) FROM [Infrastruktur].[TheoretischeAktionen]), 'EFN', 'EFN', 'EFN', 'FALSE')
-
-	IF LEFT(@EFN, 1) = 'w'
-	BEGIN
-		INSERT INTO [Spiel].[Notation]
-           ([VollzugID]
-           ,[IsPlayerWhite]
-           ,[TheoretischeAktionenID]
-           ,[LangeNotation]
-           ,[KurzeNotationEinfach]
-           ,[KurzeNotationKomplex]
-           ,[ZugIstSchachgebot])
-		VALUES
-           (0, 0, (SELECT MIN([TheoretischeAktionenID]) FROM [Infrastruktur].[TheoretischeAktionen]), 'EFN', 'EFN', 'EFN', 'FALSE')
-	END
-
-	-- --------------------------------------------------------------
-	-- Schritt 5: Rochaderecht beachten
+	-- Step 5: Observe castling rights
 	-- --------------------------------------------------------------
 
 	SET @EFN			= RIGHT(@EFN, LEN(@EFN) - 2)
-	SET @StringPart		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
+	SET @Castling		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
 	SET @EFN			= RIGHT(@EFN, LEN(@EFN) - CHARINDEX(' ', @EFN, 1))
 
-	UPDATE [Spiel].[Konfiguration]
-	SET   [IstKurzeRochadeErlaubt] = 'FALSE'
-		, [IstLangeRochadeErlaubt] = 'FALSE'
+	UPDATE [CurrentGame].[GameStatus]
+	SET   [IsShortCastlingStillAllowed]			= 'FALSE'
+		, [IsLongCastlingStillAllowed]			= 'FALSE'
 
-	IF CHARINDEX('k' COLLATE Latin1_General_CS_AI, @StringPart, 1) <> 0
+
+	IF CHARINDEX('k' COLLATE Latin1_General_CS_AI, @Castling, 1) <> 0
 	BEGIN
-		UPDATE [Spiel].[Konfiguration]
-		SET   [IstKurzeRochadeErlaubt]	= 'TRUE'
-		WHERE [IsPlayerWhite]			= 'FALSE'
+		UPDATE [CurrentGame].[GameStatus]
+		SET   [IsShortCastlingStillAllowed]		= 'TRUE'
+		WHERE [IsPlayerWhite]					= 'FALSE'
 	END
 
-	IF CHARINDEX('K' COLLATE Latin1_General_CS_AI, @StringPart, 1) <> 0
+	IF CHARINDEX('K' COLLATE Latin1_General_CS_AI, @Castling, 1) <> 0
 	BEGIN
-		UPDATE [Spiel].[Konfiguration]
-		SET   [IstKurzeRochadeErlaubt]	= 'TRUE'
-		WHERE [IsPlayerWhite]			= 'TRUE'
+		UPDATE [CurrentGame].[GameStatus]
+		SET   [IsShortCastlingStillAllowed]		= 'TRUE'
+		WHERE [IsPlayerWhite]					= 'TRUE'
 	END
 
-	IF CHARINDEX('q' COLLATE Latin1_General_CS_AI, @StringPart, 1) <> 0
+	IF CHARINDEX('q' COLLATE Latin1_General_CS_AI, @Castling, 1) <> 0
 	BEGIN
-		UPDATE [Spiel].[Konfiguration]
-		SET   [IstLangeRochadeErlaubt]	= 'TRUE'
-		WHERE [IsPlayerWhite]			= 'FALSE'
+		UPDATE [CurrentGame].[GameStatus]
+		SET   [IsLongCastlingStillAllowed]		= 'TRUE'
+		WHERE [IsPlayerWhite]					= 'FALSE'
 	END
 
-	IF CHARINDEX('Q' COLLATE Latin1_General_CS_AI, @StringPart, 1) <> 0
+	IF CHARINDEX('Q' COLLATE Latin1_General_CS_AI, @Castling, 1) <> 0
 	BEGIN
-		UPDATE [Spiel].[Konfiguration]
-		SET   [IstLangeRochadeErlaubt]	= 'TRUE'
-		WHERE [IsPlayerWhite]			= 'TRUE'
+		UPDATE [CurrentGame].[GameStatus]
+		SET   [IsLongCastlingStillAllowed]		= 'TRUE'
+		WHERE [IsPlayerWhite]					= 'TRUE'
 	END
+
 	
 	-- --------------------------------------------------------------
-	-- Schritt 6: en-passant beachten
+	-- Step 6: note en-passant
 	---- --------------------------------------------------------------
 
 	SET @StringPart		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
@@ -335,31 +290,68 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		SET @EnPassantField = (	SELECT [Feld]
-								FROM [Infrastruktur].[Spielbrett]
+		SET @EnPassantField = (	SELECT [Field]
+								FROM [Infrastructure].[GameBoard]
 								WHERE 1 = 1
-									AND [Spalte]	= LEFT(@StringPart, 1)
-									AND [Reihe]		= RIGHT(@StringPart, 1)
+									AND [Column]	= LEFT(@StringPart, 1)
+									AND [Row]		= RIGHT(@StringPart, 1)
 							)
 	END
-	
+
 	-- --------------------------------------------------------------
-	-- Schritt 7: 50-Zuege-Regel
+	-- Step 7: 50-count rule
 	---- --------------------------------------------------------------
 
 	SET @StringPart		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
 	SET @EFN			= RIGHT(@EFN, LEN(@EFN) - CHARINDEX(' ', @EFN, 1))
 
 	SET @FiftyMovesRule = CONVERT(TINYINT, @StringPart)
+
+	UPDATE [CurrentGame].[GameStatus]
+	SET [Number50ActionsRule] = @FiftyMovesRule
 	
 	-- --------------------------------------------------------------
-	-- Schritt 8: Zugzahl
+	-- Step 8: action number
 	---- --------------------------------------------------------------
 
 	SET @StringPart		= TRIM(LEFT(@EFN, CHARINDEX(' ', @EFN, 1)))
-	SET @ActionCounter		= CONVERT(INTEGER, @StringPart)
+	SET @ActionCounter	= CONVERT(INTEGER, @StringPart)
 
-	SELECT * FROM [Infrastruktur].[vSpielbrett]
+	DELETE FROM [CurrentGame].[Notation]
+
+	INSERT INTO [CurrentGame].[Notation]
+        ( [MoveID]
+        , [IsPlayerWhite]
+        , [TheoreticalActionID]
+        , [LongNotation]
+        , [ShortNotationSimple]
+        , [ShortNotationComplex]
+        , [IsMoveChessBid]
+		, [EFN])
+	VALUES
+        (0, 1, NULL, 'EFN', 'EFN', 'EFN', 'FALSE', @SaveEFN)
+
+	IF @NextPlayer = 'w'
+	BEGIN
+		INSERT INTO [CurrentGame].[Notation]
+           (  [MoveID]
+			, [IsPlayerWhite]
+			, [TheoreticalActionID]
+			, [LongNotation]
+			, [ShortNotationSimple]
+			, [ShortNotationComplex]
+			, [IsMoveChessBid]
+			, [EFN])
+		VALUES
+           (0, 0, NULL, 'EFN', 'EFN', 'EFN', 'FALSE', @SaveEFN)
+	END
+	
+
+
+
+
+
+	--SELECT * FROM [Infrastruktur].[vSpielbrett]
 
 
 END
@@ -383,15 +375,15 @@ GO
 
 /*
 
-USE [arelium_TSQL_Schach_V012]
+USE [arelium_TSQL_Chess_V015]
 GO
 
 DECLARE @EFN varchar(255)
 
---SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
-SET @EFN = '6r1/6pp/7r/1B5K/1P3k2/N7/3R4/8 w - - 30 79'
+SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+--SET @EFN = '6r1/6pp/7r/1B5K/1P3k2/N7/3R4/8 w - - 30 79'
 
-EXECUTE [Infrastruktur].[prcImportEFN] @EFN
+EXECUTE [Infrastructure].[prcImportEFN] @EFN
 GO
 
 */

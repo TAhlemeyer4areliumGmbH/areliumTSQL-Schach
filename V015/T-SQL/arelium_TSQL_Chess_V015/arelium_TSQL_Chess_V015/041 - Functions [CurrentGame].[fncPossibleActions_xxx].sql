@@ -20,7 +20,7 @@
 -- ###                                                                                     ###
 -- ### If you combine the returns for the individual calls for all instances of each       ###
 -- ### figure, you get a complete overview of all possible continuations:                  ###
--- ###    * [CurrentGame].[fncPossibleActionsAllPieces]                                    ###
+-- ###    * [CurrentGame].[prcPossibleActionsAllPieces]                                    ###
 -- ###                                                                                     ###
 -- ### At the end of this block there is a (commented out) test routine, with which one    ###
 -- ### can test for a given position and single or all pieces, which valid moves come back ###
@@ -38,6 +38,15 @@
 -- ### A big thank you goes to (MVP) Uwe Ricken, who helped the project with motivation,   ###
 -- ### advice and especially (but not only) in the area of runtime optimisation and        ###
 -- ### continues to do so (https://www.db-berater.de/).                                    ###
+-- ###                                                                                     ###
+-- ### Another thank you goes to Ralph Kemperdick, who supports the project in an advisory ###
+-- ### capacity. With his large network, especially in the Microsoft world, he makes many  ###
+-- ### problem-solving approaches possible in the first place.                             ###
+-- ###                                                                                     ###
+-- ### Also extremely helpful is Buck Woody. The long-time Microsoft employee was          ###
+-- ### persuaded by this project at a conference and has since supported it with his       ###
+-- ### enormous reach and experience in adult education. Buck knows the perfect contacts   ###
+-- ### to make the chess programme known worldwide.                                        ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Changelog:                                                                          ###
 -- ###     15.00.0   2023-07-07 Torsten Ahlemeyer                                          ###
@@ -114,7 +123,6 @@ CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsRook]
 (
 	   @IsPlayerWhite		AS BIT
 	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
-	 , @ActiveField			AS INTEGER								
 )
 RETURNS @PossibleActionsRook TABLE 
 	(
@@ -160,97 +168,145 @@ RETURNS @PossibleActionsRook TABLE
 			, [ShortNotationSimple]
 			, [ShortNotationComplex]
 		)
-		SELECT DISTINCT
-			  [MZU].[TheoreticalActionID]					AS [TheoreticalActionID]
-			, [MZU].[FigureLetter]							AS [FigureLetter]			
-			, [MZU].[IsPlayerWhite]							AS [IsPlayerWhite]
-			, [MZU].[StartColumn]							AS [StartColumn]
-			, [MZU].[StartRow]								AS [StartRow]
-			, [MZU].[StartField]							AS [StartField]
-			, [MZU].[TargetColumn]							AS [TargetColumn]
-			, [MZU].[TargetRow]								AS [TargetRow]
-			, [MZU].[TargetField]							AS [TargetField]
-			, [MZU].[Direction]								AS [Direction]
-			, [MZU].[IsActionCapture]						AS [IsActionCapture]
-			, [MZU].[IsActionEnPassant]						AS [IsActionEnPassant]
-			, [MZU].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
-			, [MZU].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
-			, NULL											AS [TransformationFigureLetter]
-			, [LongNotation]								AS [LongNotation]
-			, [ShortNotationSimple]							AS [ShortNotationSimple]
-			, [ShortNotationComplex]						AS [ShortNotationComplex]
-		FROM [Infrastructure].[TheoreticalAction]			AS [MZU]						
-		INNER JOIN @AssessmentPosition						AS [SPB]						
-			ON 1 = 1
-				AND [MZU].[TargetRow]				= [SPB].[Row]
-				AND [MZU].[TargetColumn]			= [SPB].[Column]
-		WHERE 1 = 1
-			AND [MZU].[IsPlayerWhite]				= @IsPlayerWhite
-			AND [MZU].[FigureLetter]				= 'R'
-			AND [MZU].[StartField]					= @ActiveField
+	SELECT DISTINCT
+		  [TAC].[TheoreticalActionID]					AS [TheoreticalActionID]
+		, [TAC].[FigureLetter]							AS [FigureLetter]			
+		, [TAC].[IsPlayerWhite]							AS [IsPlayerWhite]
+		, [TAC].[StartColumn]							AS [StartColumn]
+		, [TAC].[StartRow]								AS [StartRow]
+		, [TAC].[StartField]							AS [StartField]
+		, [TAC].[TargetColumn]							AS [TargetColumn]
+		, [TAC].[TargetRow]								AS [TargetRow]
+		, [TAC].[TargetField]							AS [TargetField]
+		, [TAC].[Direction]								AS [Direction]
+		, [TAC].[IsActionCapture]						AS [IsActionCapture]
+		, [TAC].[IsActionEnPassant]						AS [IsActionEnPassant]
+		, [TAC].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
+		, [TAC].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
+		, NULL											AS [TransformationFigureLetter]
+		, [LongNotation]								AS [LongNotation]
+		, [ShortNotationSimple]							AS [ShortNotationSimple]
+		, [ShortNotationComplex]						AS [ShortNotationComplex]
+	FROM [Infrastructure].[TheoreticalAction]			AS [TAC]
+	INNER JOIN @AssessmentPosition						AS [POS]
+		ON 1 = 1
+			AND [TAC].[StartField]					= [POS].[Field]
+			AND [POS].[FigureLetter]				= 'R'
+			AND [POS].[IsPlayerWhite]				= @IsPlayerWhite
+			AND [TAC].[FigureLetter]				= 'R'
+	INNER JOIN @AssessmentPosition						AS [BOR]
+		ON 1 = 1
+			AND [TAC].[TargetField]					= [BOR].[Field]
+	WHERE 1 = 1
+		AND (
+				([BOR].[IsPlayerWhite] IS NULL AND [TAC].[IsActionCapture] = 'FALSE' AND [TAC].[IsPlayerWhite] = @IsPlayerWhite)
+				OR
+				([BOR].[IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2) AND [TAC].[IsActionCapture] = 'TRUE' AND [TAC].[IsPlayerWhite] = @IsPlayerWhite)
+			)
+		AND 
+			(
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'DO'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'R'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'DO'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'R'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 1)
+					)
 
-			-- If it is a move, the target field is empty. If, on the other hand, it is a 
-			-- strike, the target field must be occupied.
-			AND (
-					([SPB].[FigureUTF8] = 160		AND [MZU].[IsActionCapture] = 'FALSE')
-					OR
-					([SPB].[FigureUTF8] <> 160		AND [MZU].[IsActionCapture] = 'TRUE')
-				)
+				OR
 
-			-- For each direction of movement, all squares up to the
-			-- first piece (of any colour) that is in the way.
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'UP'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'R'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		<= 
+								ISNULL((
+									(SELECT MIN([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'UP'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'R'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 8)
+					)
 
-			-- first figure in the path to the right
-			AND [MZU].[TargetColumn] <= ISNULL(
-				(
-					SELECT MIN([Inside].[Column])
-					FROM @AssessmentPosition				AS [Inside]
-					WHERE 1 = 1
-						AND [Inside].[FigureUTF8]		<> 160
-						AND [Inside].[Column]		> [MZU].[StartColumn]
-						AND [Inside].[Row]			= [MZU].[StartRow]
-				), 'H')
+				OR
 
-			-- first figure in the path to the left
-			AND [MZU].[TargetColumn] >= ISNULL(
-				(
-					SELECT MAX([Inside].[Column])
-					FROM @AssessmentPosition				AS [Inside]
-					WHERE 1 = 1
-						AND [Inside].[FigureUTF8]		<> 160
-						AND [Inside].[Column]		< [MZU].[StartColumn]
-						AND [Inside].[Row]			= [MZU].[StartRow]
-				), 'A')
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'LE'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'R'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetColumn]		>= 
+								ISNULL((
+									(SELECT MAX([TargetColumn])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'LE'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'R'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 1)
+					)
 
-			-- first figure in the way up
-			AND [MZU].[TargetRow] <= ISNULL(
-				(
-					SELECT MIN([Inside].[Row])
-					FROM @AssessmentPosition				AS [Inside]
-					WHERE 1 = 1
-						AND [Inside].[FigureUTF8]		<> 160
-						AND [Inside].[Column]		= [MZU].[StartColumn]
-						AND [Inside].[Row]			> [MZU].[StartRow]
-				), 8)
+				OR
 
-			-- first figure in the way down
-			AND [MZU].[TargetRow] >= ISNULL(
-				(
-					SELECT MAX([Inside].[Row])
-					FROM @AssessmentPosition				AS [Inside]
-					WHERE 1 = 1
-						AND [Inside].[FigureUTF8]		<> 160
-						AND [Inside].[Column]		= [MZU].[StartColumn]
-						AND [Inside].[Row]			< [MZU].[StartRow]
-				), 1)
-
-			-- no piece of your own colour may be captured
-			AND [SPB].[FigureUTF8] NOT IN 
-				(
-					SELECT [FigureUTF8] FROM [Infrastructure].[Figure]
-					WHERE 1 = 1
-						AND [IsPlayerWhite] = @IsPlayerWhite
-				)
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'RI'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'R'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetColumn]		<= 
+								ISNULL((
+									(SELECT MIN([TargetColumn])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'RI'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'R'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 8)
+					)
+			)
 		RETURN
 	END
 GO
@@ -264,12 +320,11 @@ CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsKnight]
 (
 	   @IsPlayerWhite		AS BIT
 	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
-	 , @ActiveField			AS INTEGER
 )
 RETURNS @PossibleActionsKnight TABLE 
 	(
 		  [TheoreticalActionID]			BIGINT			NOT NULL
-		, [FigureLetter]					CHAR(1)			NOT NULL
+		, [FigureLetter]				CHAR(1)			NOT NULL
 		, [IsPlayerWhite]				BIT				NOT NULL
 		, [StartColumn]					CHAR(1)			NOT NULL
 		, [StartRow]					TINYINT			NOT NULL
@@ -310,51 +365,40 @@ RETURNS @PossibleActionsKnight TABLE
 			, [ShortNotationComplex]
 		)
 	SELECT DISTINCT
-		  [MZU].[TheoreticalActionID]					AS [TheoreticalActionID]
-		, [MZU].[FigureLetter]							AS [FigureLetter]			
-		, [MZU].[IsPlayerWhite]							AS [IsPlayerWhite]
-		, [MZU].[StartColumn]							AS [StartColumn]
-		, [MZU].[StartRow]								AS [StartRow]
-		, [MZU].[StartField]							AS [StartField]
-		, [MZU].[TargetColumn]							AS [TargetColumn]
-		, [MZU].[TargetRow]								AS [TargetRow]
-		, [MZU].[TargetField]							AS [TargetField]
-		, [MZU].[Direction]								AS [Direction]
-		, [MZU].[IsActionCapture]						AS [IsActionCapture]
-		, [MZU].[IsActionEnPassant]						AS [IsActionEnPassant]
-		, [MZU].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
-		, [MZU].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
+		  [TAC].[TheoreticalActionID]					AS [TheoreticalActionID]
+		, [TAC].[FigureLetter]							AS [FigureLetter]			
+		, [TAC].[IsPlayerWhite]							AS [IsPlayerWhite]
+		, [TAC].[StartColumn]							AS [StartColumn]
+		, [TAC].[StartRow]								AS [StartRow]
+		, [TAC].[StartField]							AS [StartField]
+		, [TAC].[TargetColumn]							AS [TargetColumn]
+		, [TAC].[TargetRow]								AS [TargetRow]
+		, [TAC].[TargetField]							AS [TargetField]
+		, [TAC].[Direction]								AS [Direction]
+		, [TAC].[IsActionCapture]						AS [IsActionCapture]
+		, [TAC].[IsActionEnPassant]						AS [IsActionEnPassant]
+		, [TAC].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
+		, [TAC].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
 		, NULL											AS [TransformationFigureLetter]
 		, [LongNotation]								AS [LongNotation]
 		, [ShortNotationSimple]							AS [ShortNotationSimple]
 		, [ShortNotationComplex]						AS [ShortNotationComplex]
-	FROM [Infrastructure].[TheoreticalAction]			AS [MZU] 
-	INNER JOIN @AssessmentPosition						AS [SPB]
+	FROM [Infrastructure].[TheoreticalAction]			AS [TAC] 
+	INNER JOIN @AssessmentPosition						AS [POS]
 		ON 1 = 1
-			AND [MZU].[TargetRow]				= [SPB].[Row]
-			AND [MZU].[TargetColumn]				= [SPB].[Column]
+			AND [TAC].[StartField]					= [POS].[Field]
+			AND [TAC].[IsPlayerWhite]				= @IsPlayerWhite
+			AND [TAC].[FigureLetter]				= 'N'
+			AND [POS].[IsPlayerWhite]				= @IsPlayerWhite
+			AND [POS].[FigureLetter]				= 'N'
+	INNER JOIN @AssessmentPosition						AS [TAR]
+		ON 1 = 1
+			AND [TAC].[TargetField]					= [TAR].[Field]
 	WHERE 1 = 1
-		AND [MZU].[IsPlayerWhite]				= @IsPlayerWhite
-		AND [MZU].[FigureLetter]					= 'N'
-		AND [MZU].[StartField]					= @ActiveField
-		AND 
-			(	-- move
-				(
-					[SPB].[FigureUTF8]				= 160
-				AND
-					[MZU].[IsActionCapture]			= 'FALSE'
-				)
-			OR	-- capture
-				(
-					-- capture, but not your own pieces
-					[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
-										FROM [Infrastructure].[Figure]  
-										WHERE [IsPlayerWhite] = @IsPlayerWhite)
-				AND
-					[MZU].[IsActionCapture]			= 'TRUE'
-				AND 
-					[SPB].[FigureUTF8]				<> 160
-				)
+		AND (
+				([TAR].[IsPlayerWhite] IS NULL AND [TAC].[IsActionCapture] = 'FALSE')
+				OR
+				([TAR].[IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2) AND [TAC].[IsActionCapture] = 'TRUE')
 			)
 	RETURN
 	END
@@ -366,11 +410,10 @@ GO
 -- Bishop(s) -------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
-CREATE OR ALTER FUNCTION [CurrentGame].[fncPossiblectionsBishop]
+CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsBishop]
 (
 	   @IsPlayerWhite		AS BIT
 	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
-	 , @ActiveField			AS INTEGER
 )
 -- Definition of the return table
 RETURNS @MoeglicheLaeuferaktionen TABLE 
@@ -418,185 +461,146 @@ RETURNS @MoeglicheLaeuferaktionen TABLE
 			, [ShortNotationComplex]
 		)
 	-- Compile the appropriate values
-	SELECT 
-		  [MZU].[TheoreticalActionID]					AS [TheoreticalActionID]
-		, [MZU].[FigureLetter]							AS [FigureLetter]			
-		, [MZU].[IsPlayerWhite]							AS [IsPlayerWhite]	
-		, [MZU].[StartColumn]							AS [StartColumn]
-		, [MZU].[StartRow]								AS [StartRow]
-		, [MZU].[StartField]							AS [StartField]
-		, [MZU].[TargetColumn]							AS [TargetColumn]
-		, [MZU].[TargetRow]								AS [TargetRow]
-		, [MZU].[TargetField]							AS [TargetField]
-		, [MZU].[Direction]								AS [Direction]
-		, [MZU].[IsActionCapture]						AS [IsActionCapture]
-		, [MZU].[IsActionEnPassant]						AS [IsActionEnPassant]
-		, [MZU].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
-		, [MZU].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
+
+	SELECT DISTINCT
+		  [TAC].[TheoreticalActionID]					AS [TheoreticalActionID]
+		, [TAC].[FigureLetter]							AS [FigureLetter]			
+		, [TAC].[IsPlayerWhite]							AS [IsPlayerWhite]
+		, [TAC].[StartColumn]							AS [StartColumn]
+		, [TAC].[StartRow]								AS [StartRow]
+		, [TAC].[StartField]							AS [StartField]
+		, [TAC].[TargetColumn]							AS [TargetColumn]
+		, [TAC].[TargetRow]								AS [TargetRow]
+		, [TAC].[TargetField]							AS [TargetField]
+		, [TAC].[Direction]								AS [Direction]
+		, [TAC].[IsActionCapture]						AS [IsActionCapture]
+		, [TAC].[IsActionEnPassant]						AS [IsActionEnPassant]
+		, [TAC].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
+		, [TAC].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
 		, NULL											AS [TransformationFigureLetter]
 		, [LongNotation]								AS [LongNotation]
 		, [ShortNotationSimple]							AS [ShortNotationSimple]
 		, [ShortNotationComplex]						AS [ShortNotationComplex]
-	FROM  [Infrastructure].[TheoreticalAction]			AS [MZU] 
-	INNER JOIN @AssessmentPosition						AS [SPB]
+	FROM [Infrastructure].[TheoreticalAction]			AS [TAC]
+	INNER JOIN @AssessmentPosition						AS [POS]
 		ON 1 = 1
-			AND [MZU].[TargetRow]				= [SPB].[Row]
-			AND [MZU].[TargetColumn]			= [SPB].[Column]
+			AND [TAC].[StartField]					= [POS].[Field]
+			AND [POS].[FigureLetter]				= 'B'
+			AND [POS].[IsPlayerWhite]				= @IsPlayerWhite
+			AND [TAC].[FigureLetter]				= 'B'
+	INNER JOIN @AssessmentPosition						AS [BOR]
+		ON 1 = 1
+			AND [TAC].[TargetField]					= [BOR].[Field]
 	WHERE 1 = 1
-		AND [MZU].[IsPlayerWhite]				= @IsPlayerWhite
-		AND [MZU].[FigureLetter]					= 'B'
-		AND [MZU].[StartField]					= @ActiveField
-		AND 
-			(
-				([SPB].[FigureUTF8] = 160	AND [MZU].[IsActionCapture] = 'FALSE')
+		AND (
+				([BOR].[IsPlayerWhite] IS NULL AND [TAC].[IsActionCapture] = 'FALSE' AND [TAC].[IsPlayerWhite] = @IsPlayerWhite)
 				OR
-				([SPB].[FigureUTF8] <> 160	AND [MZU].[IsActionCapture] = 'TRUE')
+				([BOR].[IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2) AND [TAC].[IsActionCapture] = 'TRUE' AND [TAC].[IsPlayerWhite] = @IsPlayerWhite)
 			)
 		AND 
-					-- capture, but not your own pieces
-					[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
-										FROM [Infrastructure].[Figure]  
-										WHERE [IsPlayerWhite] = @IsPlayerWhite)
-		AND 
 			(
-				[MZU].[TargetField] IN 
-					-- top left as seen from the bishop
-					(
-						SELECT DISTINCT [TA].[TargetField]
-						FROM [Infrastructure].[TheoreticalAction] AS [TA]
-						WHERE 1 = 1
-							AND [TA].[Direction]		= 'LU'
-							AND [TA].[StartField]		=  [MZU].[StartField]
-							AND [TA].[FigureLetter]		= 'B'
-							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		<=
-								ISNULL((
-									SELECT MIN([TargetRow])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
-									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
-									WHERE 1 = 1
-										AND [TA].[Direction]		= 'LU'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'B'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
-										), 8)
-							AND [TA].[IsActionCapture]		= CASE 
-																WHEN (
-																		SELECT [INB].[FigureUTF8] 
-																		FROM @AssessmentPosition AS [INB]
-																		WHERE [INB].[Field] = [TA].[TargetField]
-																	) <> 160
-																THEN 'TRUE'
-																ELSE 'FALSE'
-															END
-
-					)
-
-				OR --down left as seen from the bishop
-
-				[MZU].[TargetField] IN 
-					(
-						SELECT DISTINCT [TA].[TargetField]
-						FROM [Infrastructure].[TheoreticalAction] AS [TA]
-						WHERE 1 = 1
-							AND [TA].[Direction]		= 'LD'
-							AND [TA].[StartField]		=  [MZU].[StartField]
-							AND [TA].[FigureLetter]		= 'B'
-							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		>=
-								ISNULL((
-									SELECT MAX([TargetRow])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
-									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
-									WHERE 1 = 1
-										AND [TA].[Direction]		= 'LD'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'B'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
-										), 1)
-							AND [TA].[IsActionCapture]		= CASE 
-																WHEN (
-																		SELECT [INB].[FigureUTF8] 
-																		FROM @AssessmentPosition AS [INB]
-																		WHERE [INB].[Field] = [TA].[TargetField]
-																	) <> 160
-																THEN 'TRUE'
-																ELSE 'FALSE'
-															END
-					)
-
-				OR -- down right as seen from the bishop
-
-				[MZU].[TargetField] IN 
-					(
-						SELECT DISTINCT [TA].[TargetField]
-						FROM [Infrastructure].[TheoreticalAction] AS [TA]
-						WHERE 1 = 1
-							AND [TA].[Direction]		= 'RD'
-							AND [TA].[StartField]		=  [MZU].[StartField]
-							AND [TA].[FigureLetter]		= 'B'
-							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		>=
-								ISNULL((
-									SELECT MAX([TargetRow])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
-									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
-									WHERE 1 = 1
-										AND [TA].[Direction]		= 'RD'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'B'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
-										), 1)
-							AND [TA].[IsActionCapture]		= CASE 
-																WHEN (
-																		SELECT [INB].[FigureUTF8] 
-																		FROM @AssessmentPosition AS [INB]
-																		WHERE [INB].[Field] = [TA].[TargetField]
-																	) <> 160
-																THEN 'TRUE'
-																ELSE 'FALSE'
-															END
-					)
-
-				OR -- top right as seen from the bishop
-
-				[MZU].[TargetField] IN 
+				[TAC].[TargetField] IN 
 					(
 						SELECT DISTINCT [TA].[TargetField]
 						FROM [Infrastructure].[TheoreticalAction] AS [TA]
 						WHERE 1 = 1
 							AND [TA].[Direction]		= 'RU'
-							AND [TA].[StartField]		=  [MZU].[StartField]
+							AND [TA].[StartField]		=  [TAC].[StartField]
 							AND [TA].[FigureLetter]		= 'B'
 							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		<=
+							AND [TA].[TargetRow]		<= 
 								ISNULL((
-									SELECT MIN([TargetRow])
+									(SELECT MIN([TargetRow])
 									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
 									LEFT JOIN @AssessmentPosition					AS [ISB]
 										ON [TA].[TargetField] = [ISB].[Field]
 									WHERE 1 = 1
 										AND [TA].[Direction]		= 'RU'
-										AND [TA].[StartField]		=  [MZU].[StartField]
+										AND [TA].[StartField]		=  [TAC].[StartField]
 										AND [TA].[FigureLetter]		= 'B'
 										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
+										AND [ISB].[FigureUTF8]		<> 160)
+
 										), 8)
-							AND [TA].[IsActionCapture]		= CASE 
-																WHEN (
-																		SELECT [INB].[FigureUTF8] 
-																		FROM @AssessmentPosition AS [INB]
-																		WHERE [INB].[Field] = [TA].[TargetField]
-																	) <> 160
-																THEN 'TRUE'
-																ELSE 'FALSE'
-															END
+					)
+
+				OR
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'LU'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'B'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		<= 
+								ISNULL((
+									(SELECT MIN([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'LU'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'B'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 8)
+					)
+
+				OR 
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'RD'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'B'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'RD'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'B'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+
+										), 1)
+					)
+
+				OR
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'LD'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'B'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'LD'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'B'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 1)
 					)
 			)
 	RETURN
@@ -614,7 +618,6 @@ CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsQueen]
 (
 	   @IsPlayerWhite		AS BIT
 	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
-	 , @ActiveField			AS INTEGER
 )
 RETURNS @PossibleActionsQueen TABLE 
 	(
@@ -659,288 +662,251 @@ RETURNS @PossibleActionsQueen TABLE
 			, [ShortNotationSimple]
 			, [ShortNotationComplex]
 		)
-	SELECT 
-		  [MZU].[TheoreticalActionID]					AS [TheoreticalActionID]
-		, [MZU].[FigureLetter]							AS [FigureLetter]			
-		, [MZU].[IsPlayerWhite]							AS [IsPlayerWhite]
-		, [MZU].[StartColumn]							AS [StartColumn]
-		, [MZU].[StartRow]								AS [StartRow]
-		, [MZU].[StartField]							AS [StartField]
-		, [MZU].[TargetColumn]							AS [TargetColumn]
-		, [MZU].[TargetRow]								AS [TargetRow]
-		, [MZU].[TargetField]							AS [TargetField]
-		, [MZU].[Direction]								AS [Direction]
-		, [MZU].[IsActionCapture]						AS [IsActionCapture]
-		, [MZU].[IsActionEnPassant]						AS [IsActionEnPassant]
-		, [MZU].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
-		, [MZU].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
+	SELECT DISTINCT
+		  [TAC].[TheoreticalActionID]					AS [TheoreticalActionID]
+		, [TAC].[FigureLetter]							AS [FigureLetter]			
+		, [TAC].[IsPlayerWhite]							AS [IsPlayerWhite]
+		, [TAC].[StartColumn]							AS [StartColumn]
+		, [TAC].[StartRow]								AS [StartRow]
+		, [TAC].[StartField]							AS [StartField]
+		, [TAC].[TargetColumn]							AS [TargetColumn]
+		, [TAC].[TargetRow]								AS [TargetRow]
+		, [TAC].[TargetField]							AS [TargetField]
+		, [TAC].[Direction]								AS [Direction]
+		, [TAC].[IsActionCapture]						AS [IsActionCapture]
+		, [TAC].[IsActionEnPassant]						AS [IsActionEnPassant]
+		, [TAC].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
+		, [TAC].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
 		, NULL											AS [TransformationFigureLetter]
 		, [LongNotation]								AS [LongNotation]
 		, [ShortNotationSimple]							AS [ShortNotationSimple]
 		, [ShortNotationComplex]						AS [ShortNotationComplex]
-	FROM [Infrastructure].[TheoreticalAction]			AS [MZU] 
-	INNER JOIN @AssessmentPosition						AS [SPB]
+	FROM [Infrastructure].[TheoreticalAction]			AS [TAC]
+	INNER JOIN @AssessmentPosition						AS [POS]
 		ON 1 = 1
-			AND [MZU].[TargetRow]				= [SPB].[Row]
-			AND [MZU].[TargetColumn]			= [SPB].[Column]
+			AND [TAC].[StartField]					= [POS].[Field]
+			AND [POS].[FigureLetter]				= 'Q'
+			AND [POS].[IsPlayerWhite]				= @IsPlayerWhite
+			AND [TAC].[IsPlayerWhite]				= @IsPlayerWhite
+			AND [TAC].[FigureLetter]				= 'Q'
+	INNER JOIN @AssessmentPosition						AS [BOR]
+		ON 1 = 1
+			AND [TAC].[TargetField]					= [BOR].[Field]
 	WHERE 1 = 1
-		AND [MZU].[IsPlayerWhite]				= @IsPlayerWhite
-		AND [MZU].[FigureLetter]				= 'Q'
-		AND [MZU].[StartField]					= @ActiveField
-		AND 
-			(
-				([SPB].[FigureUTF8] = 160		AND [MZU].[IsActionCapture] = 'FALSE')
+		AND (
+				([BOR].[IsPlayerWhite] IS NULL AND [TAC].[IsActionCapture] = 'FALSE')
 				OR
-				([SPB].[FigureUTF8] <> 160		AND [MZU].[IsActionCapture] = 'TRUE')
+				([BOR].[IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2) AND [TAC].[IsActionCapture] = 'TRUE')
 			)
-		AND
-			-- capture, but not your own pieces
-			[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
-								FROM [Infrastructure].[Figure]  
-								WHERE [IsPlayerWhite] = @IsPlayerWhite)
 		AND 
 			(
-				[MZU].[TargetField] IN 
-					(
-						SELECT DISTINCT [TA].[TargetField]
-						FROM [Infrastructure].[TheoreticalAction] AS [TA]
-						WHERE 1 = 1
-							AND [TA].[Direction]		= 'LU'
-							AND [TA].[StartField]		=  [MZU].[StartField]
-							AND [TA].[FigureLetter]		= 'Q'
-							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		<=
-								ISNULL((
-									SELECT MIN([TargetRow])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
-									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
-									WHERE 1 = 1
-										AND [TA].[Direction]		= 'LU'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'Q'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
-										), 8)
-							AND [TA].[IsActionCapture]		= CASE 
-																WHEN (
-																		SELECT [INB].[FigureUTF8] 
-																		FROM @AssessmentPosition AS [INB]
-																		WHERE [INB].[Field] = [TA].[TargetField]
-																	) <> 160
-																THEN 'TRUE'
-																ELSE 'FALSE'
-															END
-					)
-
-				OR
-
-				[MZU].[TargetField] IN 
-					(
-						SELECT DISTINCT [TA].[TargetField]
-						FROM [Infrastructure].[TheoreticalAction] AS [TA]
-						WHERE 1 = 1
-							AND [TA].[Direction]		= 'LD'
-							AND [TA].[StartField]		=  [MZU].[StartField]
-							AND [TA].[FigureLetter]		= 'Q'
-							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		>=
-								ISNULL((
-									SELECT MAX([TargetRow])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
-									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
-									WHERE 1 = 1
-										AND [TA].[Direction]		= 'LD'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'Q'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
-										), 1)
-							AND [TA].[IsActionCapture]		= CASE 
-																WHEN (
-																		SELECT [INB].[FigureUTF8] 
-																		FROM @AssessmentPosition AS [INB]
-																		WHERE [INB].[Field] = [TA].[TargetField]
-																	) <> 160
-																THEN 'TRUE'
-																ELSE 'FALSE'
-															END
-					)
-
-				OR
-
-				[MZU].[TargetField] IN 
-					(
-						SELECT DISTINCT [TA].[TargetField]
-						FROM [Infrastructure].[TheoreticalAction] AS [TA]
-						WHERE 1 = 1
-							AND [TA].[Direction]		= 'RD'
-							AND [TA].[StartField]		=  [MZU].[StartField]
-							AND [TA].[FigureLetter]		= 'Q'
-							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		>=
-								ISNULL((
-									SELECT MAX([TargetRow])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
-									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
-									WHERE 1 = 1
-										AND [TA].[Direction]		= 'RD'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'Q'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
-										), 1)
-							AND [TA].[IsActionCapture]		= CASE 
-																WHEN (
-																		SELECT [INB].[FigureUTF8] 
-																		FROM @AssessmentPosition AS [INB]
-																		WHERE [INB].[Field] = [TA].[TargetField]
-																	) <> 160
-																THEN 'TRUE'
-																ELSE 'FALSE'
-															END
-					)
-
-				OR
-
-				[MZU].[TargetField] IN 
+				[TAC].[TargetField] IN 
 					(
 						SELECT DISTINCT [TA].[TargetField]
 						FROM [Infrastructure].[TheoreticalAction] AS [TA]
 						WHERE 1 = 1
 							AND [TA].[Direction]		= 'RU'
-							AND [TA].[StartField]		=  [MZU].[StartField]
+							AND [TA].[StartField]		=  [TAC].[StartField]
 							AND [TA].[FigureLetter]		= 'Q'
 							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		<=
+							AND [TA].[TargetRow]		<= 
 								ISNULL((
-									SELECT MIN([TargetRow])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TAI]
+									(SELECT MIN([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA2]
 									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TAI].[TargetField] = [ISB].[Field]
+										ON [TA2].[TargetField] = [ISB].[Field]
 									WHERE 1 = 1
-										AND [TAI].[Direction]		= 'RU'
-										AND [TAI].[StartField]		=  [MZU].[StartField]
-										AND [TAI].[FigureLetter]	= 'Q'
-										AND [TAI].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
+										AND [TA2].[Direction]		= 'RU'
+										AND [TA2].[StartField]		=  [TAC].[StartField]
+										AND [TA2].[FigureLetter]	= 'Q'
+										AND [TA2].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+
 										), 8)
-							AND [TA].[IsActionCapture]		= CASE 
-																WHEN (
-																		SELECT [INB].[FigureUTF8] 
-																		FROM @AssessmentPosition AS [INB]
-																		WHERE [INB].[Field] = [TA].[TargetField]
-																	) <> 160
-																THEN 'TRUE'
-																ELSE 'FALSE'
-															END
 					)
 
 				OR
 
-				[MZU].[TargetField] IN 
+				[TAC].[TargetField] IN 
 					(
 						SELECT DISTINCT [TA].[TargetField]
 						FROM [Infrastructure].[TheoreticalAction] AS [TA]
 						WHERE 1 = 1
-							AND [TA].[Direction]		= 'DO'
-							AND [TA].[StartField]		=  [MZU].[StartField]
+							AND [TA].[Direction]		= 'LU'
+							AND [TA].[StartField]		=  [TAC].[StartField]
 							AND [TA].[FigureLetter]		= 'Q'
 							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		>=
+							AND [TA].[TargetRow]		<= 
 								ISNULL((
-									SELECT MAX([TargetRow])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									(SELECT MIN([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA2]
 									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
+										ON [TA2].[TargetField] = [ISB].[Field]
 									WHERE 1 = 1
-										AND [TA].[Direction]		= 'DO'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'Q'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
+										AND [TA2].[Direction]		= 'LU'
+										AND [TA2].[StartField]		=  [TAC].[StartField]
+										AND [TA2].[FigureLetter]	= 'Q'
+										AND [TA2].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 8)
+					)
+
+				OR 
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'RD'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'Q'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA2]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA2].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA2].[Direction]		= 'RD'
+										AND [TA2].[StartField]		=  [TAC].[StartField]
+										AND [TA2].[FigureLetter]	= 'Q'
+										AND [TA2].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+
 										), 1)
 					)
 
 				OR
 
-				[MZU].[TargetField] IN 
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'LD'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'Q'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA2]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA2].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA2].[Direction]		= 'LD'
+										AND [TA2].[StartField]		=  [TAC].[StartField]
+										AND [TA2].[FigureLetter]	= 'Q'
+										AND [TA2].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 1)
+					)
+
+				OR
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'DO'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'Q'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA2]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA2].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA2].[Direction]		= 'DO'
+										AND [TA2].[StartField]		=  [TAC].[StartField]
+										AND [TA2].[FigureLetter]	= 'Q'
+										AND [TA2].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 1)
+					)
+
+				OR
+
+				[TAC].[TargetField] IN 
 					(
 						SELECT DISTINCT [TA].[TargetField]
 						FROM [Infrastructure].[TheoreticalAction] AS [TA]
 						WHERE 1 = 1
 							AND [TA].[Direction]		= 'UP'
-							AND [TA].[StartField]		=  [MZU].[StartField]
+							AND [TA].[StartField]		=  [TAC].[StartField]
 							AND [TA].[FigureLetter]		= 'Q'
 							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetRow]		<=
+							AND [TA].[TargetRow]		<= 
 								ISNULL((
-									SELECT MIN([TargetRow])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									(SELECT MIN([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA2]
 									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
+										ON [TA2].[TargetField] = [ISB].[Field]
 									WHERE 1 = 1
-										AND [TA].[Direction]		= 'UP'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'Q'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
+										AND [TA2].[Direction]		= 'UP'
+										AND [TA2].[StartField]		=  [TAC].[StartField]
+										AND [TA2].[FigureLetter]	= 'Q'
+										AND [TA2].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
 										), 8)
-					)		
+					)
 
 				OR
 
-				[MZU].[TargetField] IN 
-					(
-						SELECT DISTINCT [TA].[TargetField]
-						FROM [Infrastructure].[TheoreticalAction] AS [TA]
-						WHERE 1 = 1
-							AND [TA].[Direction]		= 'RI'
-							AND [TA].[StartField]		=  [MZU].[StartField]
-							AND [TA].[FigureLetter]		= 'Q'
-							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetColumn]		<=
-								ISNULL((
-									SELECT MIN([TargetColumn])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
-									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
-									WHERE 1 = 1
-										AND [TA].[Direction]		= 'RI'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'Q'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
-										), 'H')
-					)		
-
-				OR
-
-				[MZU].[TargetField] IN 
+				[TAC].[TargetField] IN 
 					(
 						SELECT DISTINCT [TA].[TargetField]
 						FROM [Infrastructure].[TheoreticalAction] AS [TA]
 						WHERE 1 = 1
 							AND [TA].[Direction]		= 'LE'
-							AND [TA].[StartField]		=  [MZU].[StartField]
+							AND [TA].[StartField]		=  [TAC].[StartField]
 							AND [TA].[FigureLetter]		= 'Q'
 							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-							AND [TA].[TargetColumn]		>=
+							AND [TA].[TargetColumn]		>= 
 								ISNULL((
-									SELECT MAX([TargetColumn])
-									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									(SELECT MAX([TargetColumn])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA2]
 									LEFT JOIN @AssessmentPosition					AS [ISB]
-										ON [TA].[TargetField] = [ISB].[Field]
+										ON [TA2].[TargetField] = [ISB].[Field]
 									WHERE 1 = 1
-										AND [TA].[Direction]		= 'LE'
-										AND [TA].[StartField]		=  [MZU].[StartField]
-										AND [TA].[FigureLetter]		= 'Q'
-										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
-										AND [ISB].[FigureUTF8]		<> 160
-										), 'A')
-					)	
+										AND [TA2].[Direction]		= 'LE'
+										AND [TA2].[StartField]		=  [TAC].[StartField]
+										AND [TA2].[FigureLetter]	= 'Q'
+										AND [TA2].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 1)
+					)
+
+				OR
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'RI'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'Q'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetColumn]		<= 
+								ISNULL((
+									(SELECT MIN([TargetColumn])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA2]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA2].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA2].[Direction]		= 'RI'
+										AND [TA2].[StartField]		=  [TAC].[StartField]
+										AND [TA2].[FigureLetter]	= 'Q'
+										AND [TA2].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 8)
+					)
 			)
 	RETURN
 	END
@@ -954,11 +920,10 @@ GO
 -- King ------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
-CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibibleActionsKing]
+CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsKing]
 (
 	   @IsPlayerWhite		AS BIT
 	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
-	 , @ActiveField			AS INTEGER
 )
 RETURNS @PossibleActionsKing TABLE 
 	(
@@ -1004,44 +969,47 @@ RETURNS @PossibleActionsKing TABLE
 			, [ShortNotationComplex]
 		)
 	SELECT 
-		  [MZU].[TheoreticalActionID]					AS [TheoreticalActionID]
-		, [MZU].[FigureLetter]							AS [FigureLetter]			
-		, [MZU].[IsPlayerWhite]							AS [IsPlayerWhite]	
-		, [MZU].[StartColumn]							AS [StartColumn]
-		, [MZU].[StartRow]								AS [StartRow]
-		, [MZU].[StartField]							AS [StartField]
-		, [MZU].[TargetColumn]							AS [TargetColumn]
-		, [MZU].[TargetRow]								AS [TargetRow]
-		, [MZU].[TargetField]							AS [TargetField]
-		, [MZU].[Direction]								AS [Direction]
-		, [MZU].[IsActionCapture]						AS [IsActionCapture]
-		, [MZU].[IsActionEnPassant]						AS [IsActionEnPassant]
-		, [MZU].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
-		, [MZU].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
+		  [TAC].[TheoreticalActionID]					AS [TheoreticalActionID]
+		, [TAC].[FigureLetter]							AS [FigureLetter]			
+		, [TAC].[IsPlayerWhite]							AS [IsPlayerWhite]	
+		, [TAC].[StartColumn]							AS [StartColumn]
+		, [TAC].[StartRow]								AS [StartRow]
+		, [TAC].[StartField]							AS [StartField]
+		, [TAC].[TargetColumn]							AS [TargetColumn]
+		, [TAC].[TargetRow]								AS [TargetRow]
+		, [TAC].[TargetField]							AS [TargetField]
+		, [TAC].[Direction]								AS [Direction]
+		, [TAC].[IsActionCapture]						AS [IsActionCapture]
+		, [TAC].[IsActionEnPassant]						AS [IsActionEnPassant]
+		, [TAC].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
+		, [TAC].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
 		, NULL											AS [TransformationFigureLetter]
 		, [LongNotation]								AS [LongNotation]
 		, [ShortNotationSimple]							AS [ShortNotationSimple]
 		, [ShortNotationComplex]						AS [ShortNotationComplex]
-	FROM [Infrastructure].[TheoreticalAction]			AS [MZU] 
-	INNER JOIN @AssessmentPosition						AS [SPB]
+	FROM [Infrastructure].[TheoreticalAction]			AS [TAC] 
+	INNER JOIN @AssessmentPosition						AS [POS]
 		ON 1 = 1
-			AND [MZU].[TargetRow]				= [SPB].[Row]
-			AND [MZU].[TargetColumn]			= [SPB].[Column]
+			AND [TAC].[StartField]				= [POS].[Field]
+			AND [TAC].[IsPlayerWhite]			= @IsPlayerWhite
+			AND [TAC].[FigureLetter]			= 'K'
+			AND [POS].[FigureLetter]			= 'K'
+			AND [POS].[IsPlayerWhite]			= @IsPlayerWhite
+	INNER JOIN @AssessmentPosition						AS [TAR]
+		ON 1 = 1
+			AND [TAC].[TargetField]				= [TAR].[Field]
 	WHERE 1 = 1
-		AND [MZU].[IsPlayerWhite]				= @IsPlayerWhite
-		AND [MZU].[FigureLetter]				= 'K'
-		AND [MZU].[StartField]					= @ActiveField
 		AND 
 			(
-				([SPB].[FigureUTF8] = 160	AND [MZU].[IsActionCapture] = 'FALSE')
+				([TAR].[FigureUTF8] = 160		AND [TAC].[IsActionCapture] = 'FALSE')
 				OR
-				([SPB].[FigureUTF8] <> 160	AND [MZU].[IsActionCapture] = 'TRUE')
-			)
-		AND 
+				([TAR].[FigureUTF8] <> 160	AND [TAC].[IsActionCapture] = 'TRUE'
+					AND 
 					-- capture, but not your own pieces
-					[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
-										FROM [Infrastructure].[Figure]  
-										WHERE [IsPlayerWhite] = @IsPlayerWhite)
+					[POS].[IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2)
+
+				)
+			)
 	RETURN
 	END
 GO			
@@ -1056,7 +1024,6 @@ CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsPawn]
 (
 	   @IsPlayerWhite		AS BIT
 	 , @AssessmentPosition	AS [dbo].[typePosition]			READONLY
-	 , @ActiveField			AS INTEGER
 )
 RETURNS @PossibleActionsPawn TABLE 
 	(
@@ -1102,181 +1069,198 @@ RETURNS @PossibleActionsPawn TABLE
 			, [ShortNotationComplex]
 		)
 	SELECT DISTINCT
-		  [MZU].[TheoreticalActionID]					AS [TheoreticalActionID]
-		, [MZU].[FigureLetter]							AS [FigureLetter]			
-		, [MZU].[IsPlayerWhite]							AS [IsPlayerWhite]	
-		, [MZU].[StartColumn]							AS [StartColumn]
-		, [MZU].[StartRow]								AS [StartRow]
-		, [MZU].[StartField]							AS [StartField]
-		, [MZU].[TargetColumn]							AS [TargetColumn]
-		, [MZU].[TargetRow]								AS [TargetRow]
-		, [MZU].[TargetField]							AS [TargetField]
-		, [MZU].[Direction]								AS [Direction]
-		, [MZU].[IsActionCapture]						AS [IsActionCapture]
-		, [MZU].[IsActionEnPassant]						AS [IsActionEnPassant]
-		, [MZU].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
-		, [MZU].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
-		, [MZU].[TransformationFigureLetter]			AS [TransformationFigureLetter]
+		  [TAC].[TheoreticalActionID]					AS [TheoreticalActionID]
+		, [TAC].[FigureLetter]							AS [FigureLetter]			
+		, [TAC].[IsPlayerWhite]							AS [IsPlayerWhite]
+		, [TAC].[StartColumn]							AS [StartColumn]
+		, [TAC].[StartRow]								AS [StartRow]
+		, [TAC].[StartField]							AS [StartField]
+		, [TAC].[TargetColumn]							AS [TargetColumn]
+		, [TAC].[TargetRow]								AS [TargetRow]
+		, [TAC].[TargetField]							AS [TargetField]
+		, [TAC].[Direction]								AS [Direction]
+		, [TAC].[IsActionCapture]						AS [IsActionCapture]
+		, [TAC].[IsActionEnPassant]						AS [IsActionEnPassant]
+		, [TAC].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
+		, [TAC].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
+		, NULL											AS [TransformationFigureLetter]
 		, [LongNotation]								AS [LongNotation]
 		, [ShortNotationSimple]							AS [ShortNotationSimple]
 		, [ShortNotationComplex]						AS [ShortNotationComplex]
-	FROM [Infrastructure].[TheoreticalAction]			AS [MZU] 
-	INNER JOIN @AssessmentPosition						AS [SPB]
+	FROM [Infrastructure].[TheoreticalAction]			AS [TAC]
+	INNER JOIN @AssessmentPosition						AS [POS]
 		ON 1 = 1
-			AND [MZU].[TargetRow]				= [SPB].[Row]
-			AND [MZU].[TargetColumn]			= [SPB].[Column]
+			AND [TAC].[StartField]					= [POS].[Field]
+			AND [POS].[FigureLetter]				= 'P'
+			AND [POS].[IsPlayerWhite]				= @IsPlayerWhite
+			AND [TAC].[FigureLetter]				= 'P'
+	INNER JOIN @AssessmentPosition						AS [BOR]
+		ON 1 = 1
+			AND [TAC].[TargetField]					= [BOR].[Field]
 	WHERE 1 = 1
-		AND [MZU].[IsPlayerWhite]				= @IsPlayerWhite
-		AND [MZU].[FigureLetter]				= 'P'
-		AND [MZU].[StartField]					= @ActiveField
+		AND (
+				([BOR].[IsPlayerWhite] IS NULL AND [TAC].[IsActionCapture] = 'FALSE' AND [TAC].[IsPlayerWhite] = @IsPlayerWhite)
+				OR
+				([BOR].[IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2) AND [TAC].[IsActionCapture] = 'TRUE' AND [TAC].[IsPlayerWhite] = @IsPlayerWhite)
+			)
 		AND 
 			(
-				(									-- normal move
-					    [SPB].[FigureUTF8]		= 160	
-					AND [MZU].[IsActionCapture]	= 'FALSE'
-					AND 
-						(							-- in the case of a double move, the intermediate field 
-													-- must be empty
-							SELECT [BS].[FigureUTF8]
-							FROM @AssessmentPosition		AS [BS]
-							WHERE 1 = 1
-								AND (
-										(			-- WHITE moves upwards
-											[BS].[Field] = [MZU].[StartField] + 1
-											AND
-											@IsPlayerWhite	= 'TRUE'
-										)
-										OR 
-										(			-- BLACK moves downwards
-											[BS].[Field] = [MZU].[StartField] - 1
-											AND
-											@IsPlayerWhite	= 'FALSE'
-										)
-									)
-						) = 160
-				)
-				
-				OR
-				
-				(
-					    [SPB].[FigureUTF8]		<> 160	
-					AND [MZU].[IsActionCapture]	= 'TRUE'
-					AND 
-						-- capture, but not your own pieces
-						[SPB].[FigureUTF8] NOT IN (SELECT [FigureUTF8] 
-											FROM [Infrastructure].[Figure]  
-											WHERE [IsPlayerWhite] = @IsPlayerWhite)
-				)
-			)
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'DO'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'P'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'DO'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'P'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 1)
+					)
 
-	UNION
-	
-	-- Special area for the "en passant" case
-		SELECT DISTINCT
-		  [MZU].[TheoreticalActionID]					AS [TheoreticalActionID]
-		, [MZU].[FigureLetter]							AS [FigureLetter]			
-		, [MZU].[IsPlayerWhite]							AS [IsPlayerWhite]	
-		, [MZU].[StartColumn]							AS [StartColumn]
-		, [MZU].[StartRow]								AS [StartRow]
-		, [MZU].[StartField]							AS [StartField]
-		, [MZU].[TargetColumn]							AS [TargetColumn]
-		, [MZU].[TargetRow]								AS [TargetRow]
-		, [MZU].[TargetField]							AS [TargetField]
-		, [MZU].[Direction]								AS [Direction]
-		, [MZU].[IsActionCapture]						AS [IsActionCapture]
-		, [MZU].[IsActionEnPassant]						AS [IsActionEnPassant]
-		, [MZU].[IsActionCastlingKingsside]				AS [IsActionCastlingKingsside]
-		, [MZU].[IsActionCastlingQueensside]			AS [IsActionCastlingQueensside]
-		, [MZU].[TransformationFigureLetter]			AS [TransformationFigureLetter]
-		, LEFT([MZU].[LongNotation], 11)				AS [LongNotation]
-		, [MZU].[ShortNotationSimple]					AS [ShortNotationSimple]
-		, [MZU].[ShortNotationComplex]					AS [ShortNotationComplex]
-	FROM [Infrastructure].[TheoreticalAction]			AS [MZU] 
-	INNER JOIN @AssessmentPosition						AS [SPB]
-		ON 1 = 1
-			AND [MZU].[TargetRow]				= [SPB].[Row]
-			AND [MZU].[TargetColumn]			= [SPB].[Column]
-	WHERE 1 = 1
-		AND [MZU].[IsActionEnPassant]			= 'TRUE'
-		AND [MZU].[IsPlayerWhite]				= @IsPlayerWhite
-		AND (
-				(
-					[MZU].[IsPlayerWhite]		= 'TRUE'
-					AND [MZU].[StartRow]		= 5
-					AND (EXISTS (SELECT * FROM @AssessmentPosition AS [Inside] WHERE 1 = 1
-									AND ASCII([SPB].[Column])		= ASCII([Inside].[Column]) + 1
-									AND [Inside].[Row]				= 5
-									AND [Inside].[FigureLetter]		= 'B'
-									AND [Inside].[IsPlayerWhite]	= @IsPlayerWhite
-								)
-						)
-					AND (EXISTS (SELECT * FROM [CurrentGame].[Notation] AS [Inside] WHERE 1 = 1
-									AND SUBSTRING([Inside].[LongNotation], 2, 1)	= '7'
-									AND SUBSTRING([Inside].[LongNotation], 5, 1)	= '5'
-									AND [Inside].[IsPlayerWhite]					= ((@IsPlayerWhite + 1) % 2)
-									AND [Inside].[MoveID]							= (SELECT MAX([MoveID]) FROM [CurrentGame].[Notation] WHERE [IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2))
-								)
-						)
-				)
 				OR
-				(
-					[MZU].[IsPlayerWhite]			= 'TRUE'
-					AND [MZU].[StartRow]			= 5
-					AND (EXISTS (SELECT * FROM @AssessmentPosition AS [Inside] WHERE 1 = 1
-									AND ASCII([SPB].[Column])		= ASCII([Inside].[Column]) - 1
-									AND [Inside].[Row]				= 5
-									AND [Inside].[FigureLetter]	= 'B'
-									AND [Inside].[IsPlayerWhite]	= ((@IsPlayerWhite + 1) % 2)
-								)
-						)
-					AND (EXISTS (SELECT * FROM [CurrentGame].[Notation] AS [Inside] WHERE 1 = 1
-									AND SUBSTRING([Inside].[LongNotation], 2, 1)	= '7'
-									AND SUBSTRING([Inside].[LongNotation], 5, 1)	= '5'
-									AND [Inside].[IsPlayerWhite]					= ((@IsPlayerWhite + 1) % 2)
-									AND [Inside].[MoveID]							= (SELECT MAX([MoveID]) FROM [CurrentGame].[Notation] WHERE [IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2))
-								)
-						)
-				)
-			OR
-				(
-					[MZU].[IsPlayerWhite]			= 'FALSE'
-					AND [MZU].[StartRow]			= 4
-					AND (EXISTS (SELECT * FROM @AssessmentPosition AS [Inside] WHERE 1 = 1
-									AND ASCII([SPB].[Column])		= ASCII([Inside].[Column]) + 1
-									AND [Inside].[Row]				= 4
-									AND [Inside].[FigureLetter]	= 'B'
-									AND [Inside].[IsPlayerWhite]	= ((@IsPlayerWhite + 1) % 2)
-								)
-						)
-					AND (EXISTS (SELECT * FROM [CurrentGame].[Notation] AS [Inside] WHERE 1 = 1
-									AND SUBSTRING([Inside].[LongNotation], 2, 1)	= '2'
-									AND SUBSTRING([Inside].[LongNotation], 5, 1)	= '4'
-									AND [Inside].[IsPlayerWhite]					= ((@IsPlayerWhite + 1) % 2)
-									AND [Inside].[MoveID]							= (SELECT MAX([MoveID]) FROM [CurrentGame].[Notation] WHERE [IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2))
-								)
-						)
-				)
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'UP'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'P'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		<= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'UP'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'P'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 8)
+					)
+
+				OR 
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'RD'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'P'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'RD'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'P'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+
+										), 1)
+					)
+
 				OR
-				(
-					[MZU].[IsPlayerWhite]			= 'FALSE'
-					AND [MZU].[StartRow]			= 4
-					AND (EXISTS (SELECT * FROM @AssessmentPosition AS [Inside] WHERE 1 = 1
-									AND ASCII([SPB].[Column])		= ASCII([Inside].[Column]) + 1
-									AND [Inside].[Row]				= 4
-									AND [Inside].[FigureLetter]	= 'B'
-									AND [Inside].[IsPlayerWhite]	= ((@IsPlayerWhite + 1) % 2)
-								)
-						)
-					AND (EXISTS (SELECT * FROM [CurrentGame].[Notation] AS [Inside] WHERE 1 = 1
-									AND SUBSTRING([Inside].[LongNotation], 2, 1)	= '2'
-									AND SUBSTRING([Inside].[LongNotation], 5, 1)	= '4'
-									AND [Inside].[IsPlayerWhite]					= ((@IsPlayerWhite + 1) % 2)
-									AND [Inside].[MoveID]							= (SELECT MAX([MoveID]) FROM [CurrentGame].[Notation] WHERE [IsPlayerWhite] = ((@IsPlayerWhite + 1) % 2))
-								)
-						)
-				)
-			)				
-		AND [MZU].[StartField]					= @ActiveField
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'LD'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'P'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MAX([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'LD'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'P'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 1)
+					)
+
+				OR
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'RU'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'P'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		>= 
+								ISNULL((
+									(SELECT MIN([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'RU'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'P'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+
+										), 8)
+					)
+
+				OR
+
+				[TAC].[TargetField] IN 
+					(
+						SELECT DISTINCT [TA].[TargetField]
+						FROM [Infrastructure].[TheoreticalAction] AS [TA]
+						WHERE 1 = 1
+							AND [TA].[Direction]		= 'LU'
+							AND [TA].[StartField]		=  [TAC].[StartField]
+							AND [TA].[FigureLetter]		= 'P'
+							AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+							AND [TA].[TargetRow]		<= 
+								ISNULL((
+									(SELECT MIN([TargetRow])
+									FROM [Infrastructure].[TheoreticalAction]		AS [TA]
+									LEFT JOIN @AssessmentPosition					AS [ISB]
+										ON [TA].[TargetField] = [ISB].[Field]
+									WHERE 1 = 1
+										AND [TA].[Direction]		= 'LU'
+										AND [TA].[StartField]		=  [TAC].[StartField]
+										AND [TA].[FigureLetter]		= 'P'
+										AND [TA].[IsPlayerWhite]	= @IsPlayerWhite
+										AND [ISB].[FigureUTF8]		<> 160)
+										), 8)
+					)
+	)
 
 	RETURN
 	END
@@ -1294,277 +1278,166 @@ GO
 -- is transferred, where such information is additionally coded.
 -- -----------------------------------------------------------------------------------------------------------------
 
-CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsAllPieces] 
-(
-	   @IsPlayerWhite		AS BIT
-	 , @EFN					AS VARCHAR(255)
-)
-RETURNS @PossibleActions TABLE	
-	(
-		  [TheoreticalActionID]			BIGINT			NOT NULL
-		, [HalfMoveNo]					INTEGER			NOT NULL
-		, [FigureLetter]				CHAR(1)			NOT NULL
-		, [IsPlayerWhite]				BIT				NOT NULL
-		, [StartColumn]					CHAR(1)			NOT NULL
-		, [StartRow]					TINYINT			NOT NULL
-		, [StartField]					TINYINT			NOT NULL
-		, [TargetColumn]				CHAR(1)			NOT NULL
-		, [TargetRow]					TINYINT			NOT NULL
-		, [TargetField]					TINYINT			NOT NULL
-		, [Direction]					CHAR(2)			NOT NULL
-		, [IsActionCapture]				BIT				NOT NULL
-		, [IsActionEnPassant]			BIT				NOT NULL
-		, [IsActionCastlingKingsside]	BIT				NOT NULL
-		, [IsActionCastlingQueensside]	BIT				NOT NULL
-		, [TransformationFigureLetter]	NVARCHAR(20)	NULL
-		, [LongNotation]				VARCHAR(20)		NULL
-		, [ShortNotationSimple]			VARCHAR(8)		NULL
-		, [ShortNotationComplex]		VARCHAR(8)		NULL
-	) AS
-	BEGIN
+--CREATE OR ALTER FUNCTION [CurrentGame].[fncPossibleActionsAllPieces] 
+--(
+--	   @IsPlayerWhite		AS BIT
+--	 , @EFN					AS VARCHAR(255)
+--)
+--RETURNS @PossibleActions TABLE	
+--	(
+--		  [TheoreticalActionID]			BIGINT			NOT NULL
+--		, [HalfMoveNo]					INTEGER			NOT NULL
+--		, [FigureLetter]				CHAR(1)			NOT NULL
+--		, [IsPlayerWhite]				BIT				NOT NULL
+--		, [StartColumn]					CHAR(1)			NOT NULL
+--		, [StartRow]					TINYINT			NOT NULL
+--		, [StartField]					TINYINT			NOT NULL
+--		, [TargetColumn]				CHAR(1)			NOT NULL
+--		, [TargetRow]					TINYINT			NOT NULL
+--		, [TargetField]					TINYINT			NOT NULL
+--		, [Direction]					CHAR(2)			NOT NULL
+--		, [IsActionCapture]				BIT				NOT NULL
+--		, [IsActionEnPassant]			BIT				NOT NULL
+--		, [IsActionCastlingKingsside]	BIT				NOT NULL
+--		, [IsActionCastlingQueensside]	BIT				NOT NULL
+--		, [TransformationFigureLetter]	NVARCHAR(20)	NULL
+--		, [LongNotation]				VARCHAR(20)		NULL
+--		, [ShortNotationSimple]			VARCHAR(8)		NULL
+--		, [ShortNotationComplex]		VARCHAR(8)		NULL
+--	) AS
+--	BEGIN
 
-		DECLARE @FieldQueen						AS TINYINT
-		DECLARE @FieldRook						AS TINYINT
-		DECLARE @FieldKnight					AS TINYINT
-		DECLARE @FieldBishop					AS TINYINT
-		DECLARE @FieldKing						AS TINYINT
-		DECLARE @FieldPawn						AS TINYINT
-		--DECLARE @ChessBidPosition					AS BIGINT
-		--DECLARE @PinPosition					AS BIGINT
-		DECLARE @IsActionChessBid				AS BIT
-		--DECLARE @BGameBoard					AS [dbo].[typePosition]
-		--DECLARE @LongNotation					AS VARCHAR(20)
-		DECLARE @TransformationFigureLetter		AS CHAR(1)
-		--DECLARE @FieldStart						AS TINYINT
-		--DECLARE @FieldTarget					AS TINYINT
-
-
+--		DECLARE @FieldQueen						AS TINYINT
+--		DECLARE @FieldRook						AS TINYINT
+--		DECLARE @FieldKnight					AS TINYINT
+--		DECLARE @FieldBishop					AS TINYINT
+--		DECLARE @FieldKing						AS TINYINT
+--		DECLARE @FieldPawn						AS TINYINT
+--		DECLARE @IsActionChessBid				AS BIT
+--		DECLARE @TransformationFigureLetter		AS CHAR(1)
 
 		-- --------------------------------------------------------------------------
 		-- Extract the position from the EFN string and assign it to a variable
 		-- --------------------------------------------------------------------------
 
-		DECLARE @AssessmentPosition				AS [dbo].[typePosition]	
+		--DECLARE @AssessmentPosition				AS [dbo].[typePosition]	
 		
-		INSERT INTO @AssessmentPosition
-			SELECT 1, 1, * FROM [Infrastructure].[fncEFN2Position](@EFN)
-
+		--INSERT INTO @AssessmentPosition
+		--	SELECT * FROM [Infrastructure].[fncEFN2Position](@EFN)
 			
-		---- --------------------------------------------------------------------------
-		---- queen(s)
-		---- --------------------------------------------------------------------------
+		-- --------------------------------------------------------------------------
+		-- queen(s)
+		-- --------------------------------------------------------------------------
 
-		-- All queens on the board are determined. For each queen found in this way, all conceivable and 
-		-- rule-compliant actions are noted. Thus, even after multiple pawn conversions, every queen 
-		-- is taken into account
-		DECLARE curActionQueen CURSOR FOR   
-			SELECT DISTINCT [Field]
-			FROM @AssessmentPosition
-			WHERE 1 = 1
-				AND [FigureLetter]	= 'Q'
-				AND [IsPlayerWhite]	= @IsPlayerWhite
-			ORDER BY [Field];  
-
-		OPEN curActionQueen
-  
-		FETCH NEXT FROM curActionQueen INTO @FieldQueen
-		WHILE @@FETCH_STATUS = 0  
-		BEGIN 
-			INSERT INTO @PossibleActions
-			(
-				[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
-			)
-			SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
-			FROM [CurrentGame].[fncPossibleActionsQueen] (@IsPlayerWhite, @AssessmentPosition, @FieldQueen)
-
-			FETCH NEXT FROM curActionQueen INTO @FieldQueen 
-		END
-		CLOSE curActionQueen;  
-		DEALLOCATE curActionQueen; 
+--		-- All queens on the board are determined. For each queen found in this way, all conceivable and 
+--		-- rule-compliant actions are noted. Thus, even after multiple pawn conversions, every queen 
+--		-- is taken into account
+--		INSERT INTO @PossibleActions
+--		(
+--			[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
+--		)
+--		SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
+--		FROM [CurrentGame].[fncPossibleActionsQueen] (@IsPlayerWhite, @AssessmentPosition)
 
 
 		-- --------------------------------------------------------------------------
 		-- rook(s)
 		-- --------------------------------------------------------------------------
 
-		-- All the rooks on the board are determined. For each rook found in this way, all conceivable and rule-compliant 
-		-- actions are now noted. Thus, even after multiple pawn conversions, every rook is taken into account.		
-		DECLARE curActionsRook CURSOR FOR   
-			SELECT DISTINCT [Field]
-			FROM @AssessmentPosition
-			WHERE 1 = 1
-				AND [FigureLetter]	= 'R'
-				AND [IsPlayerWhite]	= @IsPlayerWhite
-			ORDER BY [Field];  
-  
-		OPEN curActionsRook
-  
-		FETCH NEXT FROM curActionsRook INTO @FieldRook
-  
-		WHILE @@FETCH_STATUS = 0  
-		BEGIN 
-
-			INSERT INTO @PossibleActions
-			(
-				[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
-			)
-			SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
-			FROM [CurrentGame].[fncPossibleActionsRook] (@IsPlayerWhite, @AssessmentPosition, @FieldRook)
-
-			FETCH NEXT FROM curActionsRook INTO @FieldRook 
-		END
-		CLOSE curActionsRook;  
-		DEALLOCATE curActionsRook; 
+--		-- All the rooks on the board are determined. For each rook found in this way, all conceivable and rule-compliant 
+--		-- actions are now noted. Thus, even after multiple pawn conversions, every rook is taken into account.		
+--		INSERT INTO @PossibleActions
+--		(
+--			[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
+--		)
+--		SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
+--		FROM [CurrentGame].[fncPossibleActionsRook] (@IsPlayerWhite, @AssessmentPosition)
 
 		-- --------------------------------------------------------------------------
 		-- bishop(s)
 		-- --------------------------------------------------------------------------
 
-		-- All the runners on the board are found. For each runner found in this way, all conceivable actions 
-		-- that conform to the rules are noted. Possible and rule-compliant actions are noted. Thus, even after multiple 
-		-- pawn conversions, each runner is taken into account.	
-		DECLARE curActionsBishop CURSOR FOR   
-			SELECT DISTINCT [Field]
-			FROM @AssessmentPosition
-			WHERE 1 = 1
-				AND [FigureLetter]	= 'B'
-				AND [IsPlayerWhite]	= @IsPlayerWhite
-			ORDER BY [Field];  
-  
-		OPEN curActionsBishop
-  
-		FETCH NEXT FROM curActionsBishop INTO @FieldBishop
-  
-		WHILE @@FETCH_STATUS = 0  
-		BEGIN 
-
-			INSERT INTO @PossibleActions
-			(
-				[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
-			)
-			SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
-			FROM [CurrentGame].[fncPossibleActionsBishop] (@IsPlayerWhite, @AssessmentPosition, @FieldBishop)
-
-			FETCH NEXT FROM curActionsBishop INTO @FieldBishop 
-		END
-		CLOSE curActionsBishop;  
-		DEALLOCATE curActionsBishop; 
+--		INSERT INTO @PossibleActions
+--		(
+--			[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
+--		)
+--		SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
+--		FROM [CurrentGame].[fncPossibleActionsBishop] (@IsPlayerWhite, @AssessmentPosition)
 
 		-- --------------------------------------------------------------------------
 		-- Knight(s)
 		-- --------------------------------------------------------------------------
 
-		-- All the knights on the board are found. For each knight found in this way, all conceivable actions 
-		-- in accordance with the rules are noted. Possible and rule-compliant actions are noted. Thus, even after 
-		-- multiple pawn conversions, each knight is taken into account.	
-		DECLARE curActionsKnight CURSOR FOR   
-			SELECT DISTINCT [Field]
-			FROM @AssessmentPosition
-			WHERE 1 = 1
-				AND [FigureLetter]	= 'N'
-				AND [IsPlayerWhite]	= @IsPlayerWhite
-			ORDER BY [Field];  
-  
-		OPEN curActionsKnight
-  
-		FETCH NEXT FROM curActionsKnight INTO @FieldKnight
-		WHILE @@FETCH_STATUS = 0  
-		BEGIN 
-			INSERT INTO @PossibleActions
-			(
-				[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
-			)
-			SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
-			FROM [CurrentGame].[fncPossibleActionsKnight] (@IsPlayerWhite, @AssessmentPosition, @FieldKnight)
+--		-- All the knights on the board are found. For each knight found in this way, all conceivable actions 
+--		-- in accordance with the rules are noted. Possible and rule-compliant actions are noted. Thus, even after 
+--		-- multiple pawn conversions, each knight is taken into account.	
+--		INSERT INTO @PossibleActions
+--		(
+--			[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
+--		)
+--		SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
+--		FROM [CurrentGame].[fncPossibleActionsKnight] (@IsPlayerWhite, @AssessmentPosition)
 
-			FETCH NEXT FROM curActionsKnight INTO @FieldKnight 
-		END
-		CLOSE curActionsKnight;  
-		DEALLOCATE curActionsKnight; 
+		-- --------------------------------------------------------------------------
+		-- king
+		-- --------------------------------------------------------------------------
 
-		---- --------------------------------------------------------------------------
-		---- king
-		---- --------------------------------------------------------------------------
+--		-- There is only one king of the same colour on the board. A pawn conversion is not to be taken into account.	
+--		INSERT INTO @PossibleActions
+--		(
+--			[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
+--		)
+--		SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture],	[IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
+--		FROM [CurrentGame].[fncPossibleActionsKing] (@IsPlayerWhite, @AssessmentPosition)
 
-		-- There is only one king of the same colour on the board. A pawn conversion is not to be taken into account.	
-		SET @FieldKing = (SELECT [Field] FROM @AssessmentPosition WHERE [FigureLetter] = 'K' AND [IsPlayerWhite] = @IsPlayerWhite)
-		INSERT INTO @PossibleActions
-		(
-			[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
-			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
-		)
-		SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
-			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-			[TransformationFigureLetter], [IsActionCapture],	[IsActionCastlingKingsside], [IsActionCastlingQueensside],
-			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
-		FROM [CurrentGame].[fncPOssibleActionsKing] (@IsPlayerWhite, @AssessmentPosition, @FieldKing)
+		-- --------------------------------------------------------------------------
+		-- pawn(s)
+		-- --------------------------------------------------------------------------
 
+--		-- There is a maximum of 16 pawns on the board. A pawn conversion is not to be taken into account.	
 
-
-		---- --------------------------------------------------------------------------
-		---- pawn(s)
-		---- --------------------------------------------------------------------------
-
-		-- There is a maximum of 16 pawns on the board. A pawn conversion is not to be taken into account.	
-		DECLARE curActionsPawn CURSOR FOR   
-			SELECT DISTINCT [Field]
-			FROM @AssessmentPosition
-			WHERE 1 = 1
-				AND [FigureLetter]	= 'P'
-				AND [IsPlayerWhite]	= @IsPlayerWhite
-			ORDER BY [Field];  
-  
-		OPEN curActionsPawn
-  
-		FETCH NEXT FROM curActionsPawn INTO @FieldPawn
-  
-		WHILE @@FETCH_STATUS = 0  
-		BEGIN 
-			INSERT INTO @PossibleActions
-			(
-				[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
-			)
-			SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
-				[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
-				[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
-				[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
-			FROM [CurrentGame].[fncPossibleActionsPawn] (@IsPlayerWhite, @AssessmentPosition, @FieldPawn)
-
-			FETCH NEXT FROM curActionsPawn INTO @FieldPawn 
-		END
-		CLOSE curActionsPawn;  
-		DEALLOCATE curActionsPawn; 
-
-
+--		INSERT INTO @PossibleActions
+--		(
+--			[TheoreticalActionID], [HalfMoveNo], [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex]
+--		)
+--		SELECT [TheoreticalActionID], 1, [FigureLetter], [IsPlayerWhite], [StartColumn],
+--			[StartRow], [StartField], [TargetColumn], [TargetRow], [TargetField], [Direction],
+--			[TransformationFigureLetter], [IsActionCapture], [IsActionCastlingKingsside], [IsActionCastlingQueensside],
+--			[IsActionEnPassant], [LongNotation], [ShortNotationSimple], [ShortNotationComplex] 
+--		FROM [CurrentGame].[fncPossibleActionsPawn] (@IsPlayerWhite, @AssessmentPosition)
 
 
 		-- ##########################################################################
@@ -1584,51 +1457,93 @@ RETURNS @PossibleActions TABLE
 		-- view of the board. Therefore, the EFN string must be evaluated and individual actions may 
 		-- have to be discarded.
 		
-		DECLARE @BeginOfCastles		AS TINYINT
-		DECLARE @Castles			AS VARCHAR(4)
+		--DECLARE @BeginOfCastles		AS TINYINT
+		--DECLARE @Castles			AS VARCHAR(4)
 		
-		SET @BeginOfCastles			= [Library].[fncCharIndexNG2](' ', @EFN, 2) + 1
-		SET @Castles				= LEFT(RIGHT(@EFN, LEN(@EFN) - @BeginOfCastles), CHARINDEX(RIGHT(@EFN, LEN(@EFN) - @BeginOfCastles), ' ', 1))
+		--SET @BeginOfCastles			= [Library].[fncCharIndexNG2](' ', @EFN, 2) + 1
+		--SET @Castles				= LEFT(RIGHT(@EFN, LEN(@EFN) - @BeginOfCastles), CHARINDEX(RIGHT(@EFN, LEN(@EFN) - @BeginOfCastles), ' ', 1))
 
-		IF CHARINDEX(@Castles, 'K', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o' 
-		IF CHARINDEX(@Castles, 'k', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o'
-		IF CHARINDEX(@Castles, 'Q', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o-o'
-		IF CHARINDEX(@Castles, 'q', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o-o'
+		--IF CHARINDEX(@Castles, 'K', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o' 
+		--IF CHARINDEX(@Castles, 'k', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o'
+		--IF CHARINDEX(@Castles, 'Q', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o-o'
+		--IF CHARINDEX(@Castles, 'q', 1) <> 0 DELETE FROM @PossibleActions WHERE [LongNotation] = 'o-o-o'
 		
 	
 
-		-- --------------------------------------------------------------------------
-		-- en passant
-		-- --------------------------------------------------------------------------
+--		-- --------------------------------------------------------------------------
+--		-- en passant
+--		-- --------------------------------------------------------------------------
 
-		-- It can happen that "en passant" is determined as a "valid" pawn move, since here only the current game 
-		-- situation is analysed from a snapshot. Often, however, the rules of the game prevent "en passant" - for 
-		-- example, because the pawn's double move was already several moves ago, which is not necessarily visible 
-		-- from the current view of the board. Therefore, the EFN string must be evaluated and individual 
-		-- actions may have to be discarded.
+--		-- It can happen that "en passant" is determined as a "valid" pawn move, since here only the current game 
+--		-- situation is analysed from a snapshot. Often, however, the rules of the game prevent "en passant" - for 
+--		-- example, because the pawn's double move was already several moves ago, which is not necessarily visible 
+--		-- from the current view of the board. Therefore, the EFN string must be evaluated and individual 
+--		-- actions may have to be discarded.
 
-		DECLARE @BeginOfEnPassant	AS TINYINT
-		DECLARE @EnPassant			AS CHAR(2)
+--		DECLARE @BeginOfEnPassant	AS TINYINT
+--		DECLARE @EnPassant			AS CHAR(2)
 		
-		SET @BeginOfEnPassant		= [Library].[fncCharIndexNG2](' ', @EFN, 3) + 1
-		SET @EnPassant				= LEFT(RIGHT(@EFN, LEN(@EFN) - @BeginOfEnPassant), 2)
+--		SET @BeginOfEnPassant		= [Library].[fncCharIndexNG2](' ', @EFN, 3) + 1
+--		SET @EnPassant				= LEFT(RIGHT(@EFN, LEN(@EFN) - @BeginOfEnPassant), 2)
 
-		IF @EnPassant <> '- ' 
-		BEGIN
-			-- the EFN string contains the information that no "en passant" situation exists
-			DELETE FROM @PossibleActions WHERE [LongNotation] like '%e.p.'
-		END
-		ELSE
-		BEGIN
-			-- it can only be struck "en passant" on the field transmitted in the EFN string. This can be up to 2 
-			-- possible captures by the opponent! (my pawn has completed a double move exactly between two pawns of the opponent).
+--		IF @EnPassant <> '- ' 
+--		BEGIN
+--			-- the EFN string contains the information that no "en passant" situation exists
+--			DELETE FROM @PossibleActions WHERE [LongNotation] like '%e.p.'
+--		END
+--		ELSE
+--		BEGIN
+--			-- it can only be struck "en passant" on the field transmitted in the EFN string. This can be up to 2 
+--			-- possible captures by the opponent! (my pawn has completed a double move exactly between two pawns of the opponent).
 
-			DELETE FROM @PossibleActions WHERE [LongNotation] like '%e.p.' AND [LongNotation] NOT like '%' + @EnPassant  + 'e.p.'
+--			DELETE FROM @PossibleActions WHERE [LongNotation] like '%e.p.' AND [LongNotation] NOT like '%' + @EnPassant  + 'e.p.'
 			
-		END
+--		END
 
-	RETURN
-	END 
+
+	
+
+--		-- --------------------------------------------------------------------------
+--		-- bound figures
+--		-- --------------------------------------------------------------------------
+
+--		-- Pieces that are not allowed to move, because they give direct access to the own king, so that it could be 
+--		-- captured by the opponent in the next move, are called "bound pieces". Since in chess you are not allowed 
+--		-- to place yourself in check, it is forbidden to move a bound piece!
+
+
+
+
+
+
+--		-- --------------------------------------------------------------------------
+--		-- Returning the chess bid
+--		-- --------------------------------------------------------------------------
+
+--		-- If you are in check, according to the rules you must react to it in the immediately following move and 
+--		-- cancel the check bid. This can be done by fleeing the king, striking the generic piece giving the check 
+--		-- or by breaking the line between one's own king and the piece giving the check (thus only possible with a 
+--		-- rook, bishop or queen attack). 
+
+--		DECLARE @KingPosition	AS TINYINT
+--		SET @KingPosition = (SELECT [Field] FROM @AssessmentPosition WHERE [FigureLetter] = 'K' AND [IsPlayerWhite] = @IsPlayerWhite)
+
+--		If EXISTS (SELECT [CurrentGame].[fncIsFieldThreatened]
+--				(
+--					  ((@IsPlayerWhite + 1) % 2)
+--					, @AssessmentPosition
+--					, @KingPosition
+--				)
+--			)
+--		BEGIN
+--			DELETE FROM @PossibleActions
+--			WHERE 1 = 1
+--				AND [TargetField]		<> @KingPosition
+--				AND [StartField]		<> @KingPosition
+--		END
+
+	--RETURN
+	--END 
 GO
 
 
@@ -1653,49 +1568,21 @@ GO
 USE [arelium_TSQL_Chess_V015]
 GO
 
-DECLARE @EFN varchar(255)
+DECLARE @EFN				AS varchar(255)
+DECLARE @IsPlayerWhite		AS BIT
+DECLARE @AssessmentPosition2	AS [dbo].[typePosition]
+DECLARE @FieldPawn			AS TINYINT
 
-SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
---SET @EFN = '6r1/6pp/7r/1B5K/1P3k2/N7/3R4/8 w - - 30 79'
+SET @EFN = 'rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR w KkQq a3 3 1'    --SET @EFN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'   --SET @EFN = '6r1/6pp/7r/1B5K/1P3k2/N7/3R4/8 w - - 30 79'
+SET @IsPlayerWhite = 'FALSE'
+		
+		--INSERT INTO @AssessmentPosition2
+			--SELECT * FROM [Infrastructure].[fncEFN2Position](@EFN)
 
-SELECT * FROM [Infrastructure].[fncEFN2Position](@EFN)
-GO
-
-
-
-
--- Test der Funktion [CurrentGame].[fncMoeglicheTurmaktionen]
-
-DECLARE @ASpielbrett	AS [dbo].[[dbo].[typePosition]]
-INSERT INTO @ASpielbrett
-	SELECT 
-		  1								AS [VarianteNr]
-		, 1								AS [Suchtiefe]
-		, [SB].[Column]					AS [Column]
-		, [SB].[Row]					AS [Row]
-		, [SB].[Field]					AS [Field]
-		, [SB].[IsPlayerWhite]		AS [IsPlayerWhite]
-		, [SB].[FigureLetter]			AS [FigureLetter]
-		, [SB].[FigureUTF8]				AS [FigureUTF8]
-	FROM [Infrastruktur].[Spielbrett]	AS [SB]
-
-DECLARE @ActiveField	AS INTEGER
-SET @ActiveField = 14--(
-	--SELECT TOP 1 [SB].[Field]
-	--FROM [Infrastruktur].[Spielbrett]	AS [SB]
-	--WHERE 1 = 1
-	--	AND [SB].[IsPlayerWhite] = 'TRUE'
-	--	AND [SB].[FigureLetter] = 'T'
-	--)
-
-SELECT * FROM [CurrentGame].[fncMoeglicheTurmaktionen] (
-	'True'
-	, @ASpielbrett
-	, @ActiveField)
-ORDER BY 2,3,4,5,7
-
-GO
+SELECT * FROM [CurrentGame].[fncPossibleActionsAllPieces] ('FALSE', 'rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR w KkQq a3 3 1')
 */
+
+
 
 
 

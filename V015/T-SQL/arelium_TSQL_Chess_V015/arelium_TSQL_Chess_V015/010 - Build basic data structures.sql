@@ -23,6 +23,15 @@
 -- ### A big thank you goes to (MVP) Uwe Ricken, who helped the project with motivation,   ###
 -- ### advice and especially (but not only) in the area of runtime optimisation and        ###
 -- ### continues to do so (https://www.db-berater.de/).                                    ###
+-- ###                                                                                     ###
+-- ### Another thank you goes to Ralph Kemperdick, who supports the project in an advisory ###
+-- ### capacity. With his large network, especially in the Microsoft world, he makes many  ###
+-- ### problem-solving approaches possible in the first place.                             ###
+-- ###                                                                                     ###
+-- ### Also extremely helpful is Buck Woody. The long-time Microsoft employee was          ###
+-- ### persuaded by this project at a conference and has since supported it with his       ###
+-- ### enormous reach and experience in adult education. Buck knows the perfect contacts   ###
+-- ### to make the chess programme known worldwide.                                        ###
 -- ### ----------------------------------------------------------------------------------- ###
 -- ### Changelog:                                                                          ###
 -- ###     15.00.0   2023-07-07 Torsten Ahlemeyer                                          ###
@@ -179,6 +188,7 @@ IF NOT EXISTS (SELECT * FROM sys.types WHERE name = N'typePosition')
 			  [Column]						CHAR(1)						NOT NULL
 			, [Row]							TINYINT						NOT NULL
 			, [Field]						TINYINT						NOT NULL
+			, [EFNPositionNr]					TINYINT						NOT NULL
 			, [IsPlayerWhite] 				BIT							NULL
 			, [FigureLetter]				CHAR(1)						NULL
 			, [FigureUTF8]					BIGINT						NULL
@@ -197,6 +207,7 @@ IF NOT EXISTS (SELECT * FROM sys.types WHERE name = N'typeNotation')
 			, [ShortNotationSimple]			VARCHAR(8)					NOT NULL   -- (long) Be3xg5 --> becomes (short) Bxg5
 			, [ShortNotationComplex]		VARCHAR(8)					NOT NULL   -- (long) Nb3-e4 --> becomes (short) Nbe4
 			, [IsMoveChessBid]				BIT							NOT NULL
+			, [EFN]							VARCHAR(100)				NOT NULL
 		)
 GO
 
@@ -248,7 +259,9 @@ CREATE TABLE [CurrentGame].[GameStatus]
 	, [IsShortCastlingStillAllowed]		BIT				NOT NULL
 	, [IsLongCastlingStillAllowed]		BIT				NOT NULL
 	, [Number50ActionsRule]				TINYINT			NOT NULL
-	, [IsEnPassantPossible]				CHAR(2)			NULL			-- Coordinate of pawn,who may be captured using "en passant" rule 
+	, [IsEnPassantPossible]				CHAR(2)			NULL			-- Coordinate of pawn, who may be captured using "en passant" rule 
+	, [IsCheck]							BIT				NOT NULL
+	, [IsMate]							BIT				NOT NULL
 )  
 
 
@@ -403,7 +416,8 @@ GO
 CREATE TABLE [Infrastructure].[GameBoard](
 	  [Column]					CHAR(1)		NOT NULL						-- A-H
 	, [Row]						TINYINT		NOT NULL						-- 1-8
-	, [Field]					TINYINT		NOT NULL						-- A1 = 1, A2 = 2, ..., B1 = 9, ...,  H8 = 64
+	, [Field]					TINYINT		NOT NULL						-- A1 = 1, A2 = 2, ..., B1 = 9, ..., H8 = 64
+	, [EFNPositionNr]			TINYINT		NOT NULL						-- A8 = 1, B8 = 2, ..., A7 = 9, ..., H1 = 64
 	, [IsPlayerWhite] 			BIT			NULL							-- 1 = TRUE
 	, [FigureLetter]			CHAR(1)		NULL							-- 'P', 'B', 'N', 'R', 'K', 'Q', NULL
 		CHECK ([FigureLetter] IN (CHAR(160), NULL, 'P', 'B', 'N', 'R', 'K', 'Q'))
@@ -459,11 +473,12 @@ GO
 CREATE TABLE [CurrentGame].[Notation](
 	  [MoveID]					INTEGER			NOT NULL						
 	, [IsPlayerWhite] 			BIT				NOT NULL				-- 1 = TRUE
-	, [TheoreticalActionID]		BIGINT			NOT NULL				-- Foreignkey [Infrastructure].[TheoreticalAction]
+	, [TheoreticalActionID]		BIGINT			NULL					-- Foreignkey [Infrastructure].[TheoreticalAction]
 	, [LongNotation]			VARCHAR(20)		NULL					-- e.g. Ne7xg8# or e7xd8Q+
 	, [ShortNotationSimple]		VARCHAR(8)		NULL					-- (long) Be3xg5 --> becomes (short) Bxg5
 	, [ShortNotationComplex]	VARCHAR(8)		NULL					-- (long) Nb3-e4 --> becomes (short) Nbe4
 	, [IsMoveChessBid]			BIT				NOT NULL				-- 1 = TRUE
+	, [EFN]						VARCHAR(100)	NOT NULL				-- complete position and metadata in EFN-format
 	, CONSTRAINT [PK_Notation] PRIMARY KEY CLUSTERED
 		(
 			  [MoveID] ASC, [IsPlayerWhite] ASC
@@ -516,6 +531,7 @@ CREATE TABLE [CurrentGame].[Configuration]
 	, [NameOfPlayer]					NVARCHAR(30)	NOT NULL
 	, [IsPlayerHuman]					BIT				NOT NULL
     , [LevelID]							INTEGER			NOT NULL     
+	, [ShowOptions]						BIT				NOT NULL
 	, CONSTRAINT PK_Configuration_IsPlayerWhite PRIMARY KEY CLUSTERED ([IsPlayerWhite])
 )
 
@@ -606,6 +622,23 @@ GO
 
 
 
+
+-- -----------------------------------------------------------------------------------------------------------------
+
+-- This table uses lookup operations to return fields on the diagonals of a search field. This information is relevant, 
+-- for example, in questions relating to pinning in order to be able to quickly check which pieces come into question 
+-- for detailed consideration
+CREATE TABLE [Infrastructure].[DiagonalAllocation](
+	  [DiagonalAllocationID]	BIGINT			IDENTITY(1,1)		NOT NULL			-- PK
+	, [Field]					TINYINT								NOT NULL			-- Field number of the board from A1 (1) via A2 (2) to H8 (64)
+	, [DiagonalType]			CHAR(2)								NOT NULL			-- LU = left up, LD = left down, RU = right up, RD = right down
+	, [TargetField]				TINYINT								NOT NULL			-- Field number of the board from A1 (1) via A2 (2) to H8 (64)
+ CONSTRAINT [PK_DiagonalAllocation] PRIMARY KEY CLUSTERED 
+(
+	[DiagonalAllocationID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
